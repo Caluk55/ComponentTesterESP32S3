@@ -240,47 +240,93 @@ void test::detectCapacitor() {
   using namespace adc;
   using namespace display;
 
-  const int tpA = 0, tpB = 1;  // TP utilizzati per il test
-  const float Rcharge = TP_SERIES_RESISTANCE;  // resistenza di carica
-  const float Vth = 1.1f;  // soglia per calcolo tempo RC
+  struct CapResult {
+    int tp1, tp2;
+    float capacitance_uF;
+    float esr_ohm;
+    bool polarized;
+    bool valid;
+  };
 
-  // Scarica C
-  setMode(tpA, Mode::GND);
-  setMode(tpB, Mode::GND);
-  delay(20);
+  auto measureCap = [](int a, int b) -> CapResult {
+    CapResult result = {a, b, 0.0f, 0.0f, false, false};
+    const float Vth = 1.1f;
+    const float Vcc = 3.3f;
+    const float R = TP_SERIES_RESISTANCE;
 
-  // Inizio carica: tpA in OUT HIGH, tpB in ADC
-  setMode(tpA, Mode::OUT);
-  write(tpA, HIGH);
-  setMode(tpB, Mode::IN);
+    // Scarica
+    setMode(a, Mode::GND);
+    setMode(b, Mode::GND);
+    delay(20);
 
-  unsigned long t0 = millis();
-  float v = 0;
-  while ((millis() - t0) < 1000) {
-    v = readVoltage(tpB);
-    if (v >= Vth) break;
+    // Carica
+    setMode(a, Mode::OUT);
+    write(a, HIGH);
+    setMode(b, Mode::IN);
+
+    unsigned long t0 = millis();
+    float v = 0;
+    while ((millis() - t0) < 1000) {
+      v = readVoltage(b);
+      if (v >= Vth) break;
+    }
+    unsigned long dt = millis() - t0;
+    if (dt == 0 || v < Vth) return result;
+
+    float C = (dt / 1000.0f) / R;
+    float C_uF = C * 1e6f;
+    if (C_uF < 0.1f || C_uF > 5000.0f) return result;
+
+    // ESR
+    setMode(a, Mode::GND);
+    setMode(b, Mode::IN);
+    delay(5);
+    float vDrop = readVoltage(b);
+    float i = Vcc / R;
+    float esr = vDrop / i;
+
+    // Polarità (grezza): tensione sale solo in una direzione
+    bool polarized = false;
+    if (vDrop < 0.3f) {
+      // Inverti polarità e riprova
+      setMode(b, Mode::OUT);
+      write(b, HIGH);
+      setMode(a, Mode::IN);
+      delay(10);
+      float vInv = readVoltage(a);
+      if (vInv < 0.3f) polarized = true;
+    }
+
+    result.capacitance_uF = C_uF;
+    result.esr_ohm = esr;
+    result.polarized = polarized;
+    result.valid = true;
+    return result;
+  };
+
+  CapResult best = {};
+  for (int i = 0; i < 3; ++i) {
+    for (int j = i + 1; j < 3; ++j) {
+      CapResult r = measureCap(i, j);
+      if (r.valid && r.capacitance_uF > best.capacitance_uF)
+        best = r;
+    }
   }
-  unsigned long tRC = millis() - t0;
 
-  // Stima capacità: C = t / R
-  float capacitance = (tRC / 1000.0f) / Rcharge;  // Farad
-  capacitance *= 1e6f;  // µF
+  if (!best.valid) {
+    showMessage("Nessun condensatore rilevato");
+    return;
+  }
 
-  // Stima ESR: lettura tensione iniziale ≈ IR drop
-  // Ipotesi: corrente ≈ Vcc / Rcharge
-  setMode(tpA, Mode::GND);
-  setMode(tpB, Mode::IN);
-  delay(5);
-  float vDrop = readVoltage(tpB);
-  float current = 3.3f / Rcharge;
-  float esr = vDrop / current;
-
-  // Visualizzazione
   String msg = "Condensatore\n";
-  msg += String(capacitance, 1) + " µF\n";
-  msg += "ESR ≈ " + String(esr, 1) + " Ω";
+  msg += "TP" + String(best.tp1 + 1) + " - TP" + String(best.tp2 + 1) + "\n";
+  msg += String(best.capacitance_uF, 1) + " µF\n";
+  msg += "ESR ≈ " + String(best.esr_ohm, 1) + " Ω";
+  if (best.polarized) msg += "\nPolarizzato";
+
   showMessage(msg);
 }
+
 
 
 
