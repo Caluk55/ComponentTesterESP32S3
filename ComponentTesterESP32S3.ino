@@ -19,7 +19,7 @@ TFT_eSPI tft = TFT_eSPI();  // Oggetto globale del display
 void setup() {
   Serial.begin(115200);
   delay(100);
-
+  display::showWelcomeScreen();   // Mostra messaggio iniziale
   tp.begin()
   initConfig();
   initDisplay(&tft);
@@ -38,4 +38,14 @@ void loop() {
   commandsLoop();  // Gestione automatica
   userLoop();      // Eventuale interazione manuale
   tp.runTestCycle()
+  float v1 = adc::readVoltage(tp::TP1);
+  float v2 = adc::readVoltage(tp::TP2);
+  float v3 = adc::readVoltage(tp::TP3);
+
+  display::clear();  // Pulisce lo schermo prima di aggiornare
+  display::showVoltage(v1, "TP1");
+  display::showVoltage(v2, "TP2");
+  display::showVoltage(v3, "TP3");
+
+  delay(1000);  // Aggiorna ogni secondo
 }
