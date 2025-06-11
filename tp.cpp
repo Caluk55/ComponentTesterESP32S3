@@ -1,7 +1,9 @@
 #include "tp.h"
 
 // Mappa dei pin fisici su ESP32-S3 per TP1–TP3
-constexpr uint8_t TP_PINS[3] = { 4, 5, 6 };  // Modifica secondo il tuo schema
+#include "config.h"
+
+constexpr uint8_t TP_PINS[3] = { TP1_PIN, TP2_PIN, TP3_PIN };
 
 namespace tp {
 
