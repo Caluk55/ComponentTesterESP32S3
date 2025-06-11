@@ -1,22 +1,16 @@
-// display.h
-#ifndef _DISPLAY_H_
-#define _DISPLAY_H_
+#ifndef DISPLAY_H
+#define DISPLAY_H
 
-// Includere solo header locali o di sistema strettamente necessari per le DICHIARAZIONI.
-// Evitare TFTeSPI.h o Arduino.h qui.
+#include <Arduino.h>
 
-// Dichiara che 'tft' è definita altrove (nel .ino)
-extern TFT_eSPI tft;
+namespace display {
 
-// Dimensioni delle icone (devono corrispondere a quelle effettive degli array)
-#define ICON_WIDTH  32
-#define ICON_HEIGHT 39
+    void begin();
+    void showWelcomeScreen();
+    void showVoltage(float voltage, const char* label);
+    void clear();
+    void showMessage(const char* msg, uint16_t color = 0xFFFF);  // Default: bianco
 
-// Dichiarazioni di funzioni display
-void displayWelcomeScreen();
-void drawComponentIcon(byte componentType, int x, int y, int numPins);
-void drawComponentPins(int centerX, int startY, int numPins);
-void displayMeasurementResult(const char* label, const char* value, int x, int y, int textColor);
-// Aggiungere altre funzioni display qui man mano che servono
+}
 
-#endif // _DISPLAY_H_
+#endif // DISPLAY_H
