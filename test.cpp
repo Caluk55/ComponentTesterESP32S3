@@ -110,6 +110,54 @@ void test::detectDiodeBetween(tp::TPLabel a, tp::TPLabel b) {
         display::tft.printf("TP%d–TP%d\nVf: %.2f V\nVr: %.2f V", a + 1, b + 1, v_ab, v_ba);
     }
 }
+void test::detectDoubleDiodeOrLED(tp::TPLabel a, tp::TPLabel b) {
+    float v_ab = 0.0f;
+    float v_ba = 0.0f;
+
+    // Test A ➝ B
+    tp::configureAsOutput(a);
+    tp::setLevel(a, true);
+    tp::configureAsInput(b);
+    delay(10);
+    v_ab = adc::readVoltage(b);
+
+    // Test B ➝ A
+    tp::configureAsOutput(b);
+    tp::setLevel(b, true);
+    tp::configureAsInput(a);
+    delay(10);
+    v_ba = adc::readVoltage(a);
+
+    display::clear();
+    display::showMessage("Test Diodo/LED", TFT_MAGENTA);
+
+    const float LED_THRESHOLD_MIN = 1.5f;
+    const float LED_THRESHOLD_MAX = 3.3f;
+
+    bool ab_led = (v_ab >= LED_THRESHOLD_MIN && v_ab <= LED_THRESHOLD_MAX && v_ba < 0.2f);
+    bool ba_led = (v_ba >= LED_THRESHOLD_MIN && v_ba <= LED_THRESHOLD_MAX && v_ab < 0.2f);
+
+    bool both_diode =
+        (v_ab > 0.4f && v_ab < 0.85f) &&
+        (v_ba > 0.4f && v_ba < 0.85f);
+
+    if (both_diode) {
+        display::showMessage("Doppio diodo rilevato", TFT_GREEN);
+        display::tft.setCursor(10, 100);
+        display::tft.printf("TP%d ⇄ TP%d\nV1: %.2f V  V2: %.2f V", a + 1, b + 1, v_ab, v_ba);
+    } else if (ab_led || ba_led) {
+        display::showMessage("LED rilevato", TFT_YELLOW);
+        display::tft.setCursor(10, 100);
+        display::tft.printf("Anodo: TP%d\nCatodo: TP%d\nVf: %.2f V",
+                            ab_led ? a + 1 : b + 1,
+                            ab_led ? b + 1 : a + 1,
+                            ab_led ? v_ab : v_ba);
+    } else {
+        display::showMessage("Nessun LED o doppio diodo", TFT_RED);
+        display::tft.setCursor(10, 100);
+        display::tft.printf("TP%d–TP%d\nV1: %.2f V  V2: %.2f V", a + 1, b + 1, v_ab, v_ba);
+    }
+}
 
 
 

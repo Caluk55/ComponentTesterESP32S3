@@ -59,6 +59,12 @@ test::detectDiodeBetween(tp::TP2, tp::TP3);
 delay(2000);
 test::detectDiodeBetween(tp::TP3, tp::TP1);
 delay(2000);
+test::detectDoubleDiodeOrLED(tp::TP1, tp::TP2);
+delay(2000);
+test::detectDoubleDiodeOrLED(tp::TP2, tp::TP3);
+delay(2000);
+test::detectDoubleDiodeOrLED(tp::TP3, tp::TP1);
+delay(2000);
 
 
 }
