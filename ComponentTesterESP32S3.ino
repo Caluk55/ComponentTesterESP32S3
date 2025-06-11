@@ -9,7 +9,7 @@
 #include "display.h"
 #include "commands.h"
 #include "user.h"
-#include "ADC.h"
+#include "adc.h"
 #include "PWM.h"
 #include "probes.h"
 #include "tp.h
