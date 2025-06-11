@@ -67,5 +67,8 @@ test::detectDoubleDiodeOrLED(tp::TP3, tp::TP1);
 delay(2000);
  test::detectBJT();
   delay(2000);
+  test::detectCapacitor();
+delay(2000);
+
 
 }

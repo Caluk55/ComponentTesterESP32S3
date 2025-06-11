@@ -7,6 +7,7 @@ namespace test {
     void detectDiodeBetween(tp::TPLabel a, tp::TPLabel b);
     void detectDoubleDiodeOrLED(tp::TPLabel a, tp::TPLabel b);
     void detectBJT();
+    void detectCapacitor();
 
 }
 
