@@ -405,6 +405,87 @@ void test::detectInductor() {
   showMessage(msg);
 }
 
+void test::detectMOSFET() {
+  using namespace tp;
+  using namespace adc;
+  using namespace display;
+
+  struct MosfetResult {
+    int gate, drain, source;
+    bool isNchannel;
+    float rdson;
+    bool valid;
+  };
+
+  auto detectDiode = [](int a, int b) -> bool {
+    float v1 = tp::detectDiodeBetween(a, b);
+    float v2 = tp::detectDiodeBetween(b, a);
+    return (v1 > 0.4f || v2 > 0.4f);
+  };
+
+  MosfetResult result = {0, 0, 0, true, 0.0f, false};
+
+  for (int g = 0; g < 3; ++g) {
+    int d = (g + 1) % 3;
+    int s = (g + 2) % 3;
+
+    if (!detectDiode(d, s)) continue;
+
+    // Tenta NMOS
+    setMode(g, Mode::OUT);
+    write(g, HIGH);  // G=HIGH
+    setMode(s, Mode::GND);
+    setMode(d, Mode::IN);
+    delay(5);
+
+    float vN = readVoltage(d);
+    bool condN = vN > 0.5f;
+
+    // Tenta PMOS
+    write(g, LOW);  // G=LOW
+    setMode(s, Mode::VCC);
+    setMode(d, Mode::IN);
+    delay(5);
+
+    float vP = readVoltage(d);
+    bool condP = vP < 2.8f;
+
+    if (condN || condP) {
+      result.gate = g;
+      result.drain = d;
+      result.source = s;
+      result.isNchannel = condN;
+      result.valid = true;
+      break;
+    }
+  }
+
+  if (!result.valid) {
+    showMessage("Nessun MOSFET rilevato");
+    return;
+  }
+
+  // Calcolo Rdson
+  setMode(result.gate, Mode::OUT);
+  write(result.gate, result.isNchannel ? HIGH : LOW);
+  setMode(result.source, result.isNchannel ? Mode::GND : Mode::VCC);
+  setMode(result.drain, Mode::IN);
+  delay(10);
+  float vOut = readVoltage(result.drain);
+  float i = 3.3f / TP_SERIES_RESISTANCE;
+  float vds = result.isNchannel ? (3.3f - vOut) : vOut;
+  float rds = vds / i;
+
+  // Output
+  String msg = (result.isNchannel ? "N-MOSFET\n" : "P-MOSFET\n");
+  msg += "G=TP" + String(result.gate + 1);
+  msg += " D=TP" + String(result.drain + 1);
+  msg += " S=TP" + String(result.source + 1);
+  msg += "\nRds(on) ≈ " + String(rds, 1) + " Ω";
+
+  showMessage(msg);
+}
+
 
 
 

@@ -71,6 +71,8 @@ delay(2000);
 delay(2000);
 test::detectInductor();
 delay(2000);
+test::detectMOSFET();
+delay(2000);
 
 
 }

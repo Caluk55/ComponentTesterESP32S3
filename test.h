@@ -9,6 +9,7 @@ namespace test {
     void detectBJT();
     void detectCapacitor();
     void detectInductor();
+    void detectMOSFET();
 
 }
 
