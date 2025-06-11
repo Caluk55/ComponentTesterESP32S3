@@ -163,31 +163,26 @@ void detectBJT() {
   using namespace adc;
   using namespace display;
 
-  int base = -1, c = -1, e = -1;
+  int base = -1, t1 = -1, t2 = -1;
   bool isNPN = false, bjtFound = false;
 
-  // Cicla tutte le combinazioni per trovare un TP che ha diodo verso gli altri due
+  // Identifica la base tramite doppia giunzione
   for (int i = 0; i < 3; ++i) {
     int j = (i + 1) % 3;
     int k = (i + 2) % 3;
 
-    bool fwd1 = tp::detectDiodeBetween(i, j) > 0.4f;
-    bool fwd2 = tp::detectDiodeBetween(i, k) > 0.4f;
+    float vij = detectDiodeBetween(i, j);
+    float vik = detectDiodeBetween(i, k);
+    float vji = detectDiodeBetween(j, i);
+    float vki = detectDiodeBetween(k, i);
 
-    bool rev1 = tp::detectDiodeBetween(j, i) > 0.4f;
-    bool rev2 = tp::detectDiodeBetween(k, i) > 0.4f;
-
-    if (fwd1 && fwd2) {
-      base = i;
-      c = j;
-      e = k;
+    if (vij > 0.4f && vik > 0.4f) {
+      base = i; t1 = j; t2 = k;
       isNPN = true;
       bjtFound = true;
       break;
-    } else if (rev1 && rev2) {
-      base = i;
-      c = j;
-      e = k;
+    } else if (vji > 0.4f && vki > 0.4f) {
+      base = i; t1 = j; t2 = k;
       isNPN = false;
       bjtFound = true;
       break;
@@ -199,25 +194,42 @@ void detectBJT() {
     return;
   }
 
-  // Stima hFE semplificata (solo indicativa)
-  float Vcc = 3.3f;
+  // Polarizza la base
+  setMode(base, Mode::OUT);
+  write(base, isNPN ? HIGH : LOW);
+  delay(5);
 
-  tp::setMode(base, Mode::OUT);
-  tp::write(base, isNPN ? HIGH : LOW);  // Polarizzazione base
-  tp::setMode(c, Mode::IN);
-  tp::setMode(e, Mode::GND);
+  // Imposta TP candidati a C/E come input
+  setMode(t1, Mode::IN);
+  setMode(t2, Mode::IN);
+  setMode((isNPN ? t2 : t1), Mode::GND);  // Emettitore a GND
 
   delay(10);
-  float v_collettore = adc::readVoltage(c);
+  float vt1 = readVoltage(t1);
+  float vt2 = readVoltage(t2);
+
+  int collector, emitter;
+  if ((isNPN && vt1 > vt2) || (!isNPN && vt1 < vt2)) {
+    collector = t1;
+    emitter = t2;
+  } else {
+    collector = t2;
+    emitter = t1;
+  }
+
+  // Stima hFE
+  float Vcc = 3.3f;
+  float v_collettore = readVoltage(collector);
   float ic = (Vcc - v_collettore) / TP_SERIES_RESISTANCE;
-  float ib = 0.00005f; // Stima corrente base (approssimazione)
+  float ib = 0.00005f; // stima fissa
   float hfe = ic / ib;
 
+  // Output
   String tipo = isNPN ? "NPN" : "PNP";
   String msg = "BJT: " + tipo + "\n";
   msg += "B=TP" + String(base + 1);
-  msg += " C=TP" + String(c + 1);
-  msg += " E=TP" + String(e + 1);
+  msg += " C=TP" + String(collector + 1);
+  msg += " E=TP" + String(emitter + 1);
   msg += "\nhFE ≈ " + String((int)hfe);
 
   showMessage(msg);
