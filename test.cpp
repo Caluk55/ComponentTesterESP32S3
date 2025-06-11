@@ -158,32 +158,69 @@ void test::detectDoubleDiodeOrLED(tp::TPLabel a, tp::TPLabel b) {
         display::tft.printf("TP%d–TP%d\nV1: %.2f V  V2: %.2f V", a + 1, b + 1, v_ab, v_ba);
     }
 }
-void test::detectBJT() {
+void detectBJT() {
   using namespace tp;
+  using namespace adc;
+  using namespace display;
 
-  int base = -1;
-  bool found = false;
+  int base = -1, c = -1, e = -1;
+  bool isNPN = false, bjtFound = false;
 
+  // Cicla tutte le combinazioni per trovare un TP che ha diodo verso gli altri due
   for (int i = 0; i < 3; ++i) {
     int j = (i + 1) % 3;
     int k = (i + 2) % 3;
 
-    float v_ij = detectDiodeBetween(i, j);
-    float v_ik = detectDiodeBetween(i, k);
+    bool fwd1 = tp::detectDiodeBetween(i, j) > 0.4f;
+    bool fwd2 = tp::detectDiodeBetween(i, k) > 0.4f;
 
-    if (v_ij > 0.5f && v_ij < 0.8f &&
-        v_ik > 0.5f && v_ik < 0.8f) {
+    bool rev1 = tp::detectDiodeBetween(j, i) > 0.4f;
+    bool rev2 = tp::detectDiodeBetween(k, i) > 0.4f;
+
+    if (fwd1 && fwd2) {
       base = i;
-      found = true;
+      c = j;
+      e = k;
+      isNPN = true;
+      bjtFound = true;
+      break;
+    } else if (rev1 && rev2) {
+      base = i;
+      c = j;
+      e = k;
+      isNPN = false;
+      bjtFound = true;
       break;
     }
   }
 
-  if (found) {
-    display::showMessage("BJT rilevato (base: TP" + String(base + 1) + ")");
-  } else {
-    display::showMessage("Nessun BJT rilevato");
+  if (!bjtFound) {
+    showMessage("Nessun BJT rilevato");
+    return;
   }
+
+  // Stima hFE semplificata (solo indicativa)
+  float Vcc = 3.3f;
+
+  tp::setMode(base, Mode::OUT);
+  tp::write(base, isNPN ? HIGH : LOW);  // Polarizzazione base
+  tp::setMode(c, Mode::IN);
+  tp::setMode(e, Mode::GND);
+
+  delay(10);
+  float v_collettore = adc::readVoltage(c);
+  float ic = (Vcc - v_collettore) / TP_SERIES_RESISTANCE;
+  float ib = 0.00005f; // Stima corrente base (approssimazione)
+  float hfe = ic / ib;
+
+  String tipo = isNPN ? "NPN" : "PNP";
+  String msg = "BJT: " + tipo + "\n";
+  msg += "B=TP" + String(base + 1);
+  msg += " C=TP" + String(c + 1);
+  msg += " E=TP" + String(e + 1);
+  msg += "\nhFE ≈ " + String((int)hfe);
+
+  showMessage(msg);
 }
 
 
