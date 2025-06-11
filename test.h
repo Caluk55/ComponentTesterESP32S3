@@ -8,6 +8,7 @@ namespace test {
     void detectDoubleDiodeOrLED(tp::TPLabel a, tp::TPLabel b);
     void detectBJT();
     void detectCapacitor();
+    void detectInductor();
 
 }
 

@@ -327,6 +327,84 @@ void test::detectCapacitor() {
   showMessage(msg);
 }
 
+void test::detectInductor() {
+  using namespace tp;
+  using namespace adc;
+  using namespace display;
+
+  struct InductanceResult {
+    int tp1, tp2;
+    float inductance_H;
+    float resistance_ohm;
+    bool valid;
+  };
+
+  auto measureInductor = [](int a, int b) -> InductanceResult {
+    InductanceResult result = {a, b, 0.0f, 0.0f, false};
+    const float Vcc = 3.3f;
+    const float V_trigger = 1.0f;
+    const float R = TP_SERIES_RESISTANCE;
+
+    // Scarica
+    setMode(a, Mode::GND);
+    setMode(b, Mode::GND);
+    delay(20);
+
+    // Carica tramite R: A = HIGH, B = IN
+    setMode(a, Mode::OUT);
+    write(a, HIGH);
+    setMode(b, Mode::IN);
+
+    unsigned long t0 = micros();
+    float v = 0;
+    while ((micros() - t0) < 300000) {
+      v = readVoltage(b);
+      if (v >= V_trigger) break;
+    }
+    unsigned long t1 = micros();
+    unsigned long delta_t_us = t1 - t0;
+    if (delta_t_us < 100 || delta_t_us > 250000) return result;
+
+    float time_s = delta_t_us / 1e6f;
+    float L = R * time_s;  // H
+
+    // Stima Rdc
+    setMode(a, Mode::OUT);
+    write(a, HIGH);
+    setMode(b, Mode::GND);
+    delay(10);
+    setMode(a, Mode::IN);
+    delayMicroseconds(50);
+    float vDrop = readVoltage(a);
+    float i = Vcc / R;
+    float Rdc = (Vcc - vDrop) / i;
+
+    result.inductance_H = L;
+    result.resistance_ohm = Rdc;
+    result.valid = true;
+    return result;
+  };
+
+  InductanceResult best = {};
+  for (int i = 0; i < 3; ++i) {
+    for (int j = i + 1; j < 3; ++j) {
+      InductanceResult r = measureInductor(i, j);
+      if (r.valid && r.inductance_H > best.inductance_H)
+        best = r;
+    }
+  }
+
+  if (!best.valid) {
+    showMessage("Nessun induttore rilevato");
+    return;
+  }
+
+  String msg = "Induttore\nTP" + String(best.tp1 + 1) + " - TP" + String(best.tp2 + 1) + "\n";
+  msg += String(best.inductance_H * 1000.0f, 2) + " mH\n";
+  msg += "Rdc ≈ " + String(best.resistance_ohm, 1) + " Ω";
+  showMessage(msg);
+}
+
 
 
 
