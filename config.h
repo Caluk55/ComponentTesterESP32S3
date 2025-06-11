@@ -1,6 +1,12 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// === Parametri elettrici reali ===
+#define TP_SERIES_RESISTANCE 680.0f        // Ω — resistenza in serie per limitare corrente
+#define TP_PULL_RESISTANCE   470000.0f     // Ω — pull-down fissa su ogni TP
+#define TP_DIODE_DROP        0.65f         // V — caduta tipica dei diodi di protezione
+
+
 // === Debug ===
 #define DEBUG 1
 #define VERBOSE 1  // Stampa dettagliata su Serial
