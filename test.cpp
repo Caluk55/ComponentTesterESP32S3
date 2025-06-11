@@ -158,6 +158,33 @@ void test::detectDoubleDiodeOrLED(tp::TPLabel a, tp::TPLabel b) {
         display::tft.printf("TP%d–TP%d\nV1: %.2f V  V2: %.2f V", a + 1, b + 1, v_ab, v_ba);
     }
 }
+void test::detectBJT() {
+  using namespace tp;
+
+  int base = -1;
+  bool found = false;
+
+  for (int i = 0; i < 3; ++i) {
+    int j = (i + 1) % 3;
+    int k = (i + 2) % 3;
+
+    float v_ij = detectDiodeBetween(i, j);
+    float v_ik = detectDiodeBetween(i, k);
+
+    if (v_ij > 0.5f && v_ij < 0.8f &&
+        v_ik > 0.5f && v_ik < 0.8f) {
+      base = i;
+      found = true;
+      break;
+    }
+  }
+
+  if (found) {
+    display::showMessage("BJT rilevato (base: TP" + String(base + 1) + ")");
+  } else {
+    display::showMessage("Nessun BJT rilevato");
+  }
+}
 
 
 
