@@ -51,5 +51,14 @@ void loop() {
   delay(1000);  // Aggiorna ogni secondo
   test::detectResistorTP1TP2();
   delay(3000);
+  test::detectDiodeTP1TP2();
+delay(3000);
+test::detectDiodeBetween(tp::TP1, tp::TP2);
+delay(2000);
+test::detectDiodeBetween(tp::TP2, tp::TP3);
+delay(2000);
+test::detectDiodeBetween(tp::TP3, tp::TP1);
+delay(2000);
+
 
 }
