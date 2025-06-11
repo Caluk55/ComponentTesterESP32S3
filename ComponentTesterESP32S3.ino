@@ -1,39 +1,37 @@
+// VERSIONE ATTUALE: aggiornata con initADC, initDisplay, initProbes, ecc.
+// Vedi anche moduli: ADC.cpp, display.cpp, commands.cpp
+
 #include <TFT_eSPI.h>
+#include <Arduino.h>
+// Moduli core
+#include "config.h"
+#include "variables.h"
+#include "display.h"
+#include "commands.h"
+#include "user.h"
+#include "ADC.h"
+#include "PWM.h"
+#include "probes.h"
 
-// ComponentTester_ESP32S3.ino
-// Progetto Component Tester adattato per ESP32S3 con display TFT ST7789 e libreria TFTeSPI.
-
-// --- Dichiarazione delle librerie ---
-//#include <TFTeSPI.h>   // Questa DEVE essere la prima, dato il comportamento osservato
-#include <Arduino.h>   // Subito dopo
-
-// --- Inclusione degli header dei moduli personalizzati ---
-#include "config.h"      // File di configurazione generale (già OK)
-#include "colors.h"      // Definizione colori (già OK)
-#include "display.h"     // Dichiarazioni funzioni display (Il TUO display.h)
-#include "icons.h"       // Per gli array di icone
-
-// --- Dichiarazione GLOBALE dell'oggetto TFTeSPI ---
-TFT_eSPI tft; // Dichiarazione: l'oggetto è qui e unico
+TFT_eSPI tft = TFT_eSPI();  // Oggetto globale del display
 
 void setup() {
-  Serial.begin(115200); // Per debug, utile
-  tft.init();
-  tft.setRotation(1); // Rotazione del display (1 per 240x320 orizzontale, 0 per 320x240 verticale)
-  tft.fillScreen(TFT_BLACK);
+  Serial.begin(115200);
+  delay(100);
 
-  // Esempio: Mostra la schermata di benvenuto all'avvio
-  displayWelcomeScreen();
-  delay(2000); // Mostra per 2 secondi
-  tft.fillScreen(TFT_BLACK); // Pulisci lo schermo
+  initConfig();
+  initDisplay(&tft);
+  showSplash();
 
-  // Esempio: Disegna un'icona e i pin numerati
-  drawComponentIcon(COMPONENT_RESISTOR, 50, 50, 3); // Disegna icona resistore a 50,50 con 3 pin
-  drawComponentPins(50 + ICON_WIDTH / 2, 50 + ICON_HEIGHT, 3); // Disegna i pin sotto l'icona
+  initADC();
+  initPWM();
+  initProbes();
+
+  initCommands();
+  initUser();
 }
 
 void loop() {
-  // Qui andrà la logica principale del tester
-  // Per ora, possiamo lasciare vuoto o aggiungere un loop di test
-  delay(100);
+  commandsLoop();  // Gestione automatica
+  userLoop();      // Eventuale interazione manuale
 }
