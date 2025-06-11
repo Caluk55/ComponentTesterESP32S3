@@ -13,6 +13,7 @@
 #include "PWM.h"
 #include "probes.h"
 #include "tp.h
+#include "test.h"
 
 TFT_eSPI tft = TFT_eSPI();  // Oggetto globale del display
 
@@ -48,4 +49,7 @@ void loop() {
   display::showVoltage(v3, "TP3");
 
   delay(1000);  // Aggiorna ogni secondo
+  test::detectResistorTP1TP2();
+  delay(3000);
+
 }
