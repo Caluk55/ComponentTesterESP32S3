@@ -1,5 +1,6 @@
 #include "adc.h"
 #include <Arduino.h>
+#include "tp.h" // <--- AGGIUNGI QUESTO
 
 // Mappa i TP ai rispettivi pin fisici
 static const int TP_PINS[3] = { TP1_PIN, TP2_PIN, TP3_PIN };

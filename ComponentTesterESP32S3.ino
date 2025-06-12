@@ -17,9 +17,9 @@ void setup() {
 
 void loop() {
   // Leggi e mostra le tensioni sui test point
-  float v1 = adc::readVoltage(tp::TP1);
-  float v2 = adc::readVoltage(tp::TP2);
-  float v3 = adc::readVoltage(tp::TP3);
+  float v1 = adc::readVoltage(TP1);
+  float v2 = adc::readVoltage(TP2);
+  float v3 = adc::readVoltage(TP3);
 
   display::clear();
   display::showVoltage(v1, "TP1");

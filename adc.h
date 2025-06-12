@@ -2,6 +2,7 @@
 #define ADC_H
 
 #include "config.h"
+#include "tp.h" // <--- AGGIUNGI QUESTO
 
 namespace adc {
 
