@@ -2,6 +2,15 @@
 #define TP_H
 
 #include "config.h"
+#include <stdint.h>
+
+// Definizione tipo TP (Test Point)
+typedef uint8_t TP;
+
+// Alias numerici per i test point (modifica secondo il tuo hardware in config.h se serve)
+#define TP1 0
+#define TP2 1
+#define TP3 2
 
 namespace tp {
 
@@ -25,4 +34,5 @@ int tpToPin(TP tp);
 
 } // namespace tp
 
+#endif // TP_H
 #endif // TP_H
