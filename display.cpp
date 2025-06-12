@@ -25,7 +25,7 @@ void showWelcomeScreen() {
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setTextSize(1);
     tft.setCursor(20, 70);
-    tft.println("by Caluk55");
+    tft.println("by Cal 2025");
     // Eventuale logo/icone
     showIcon(0, 180, 10, TFT_GREEN); // esempio, icona 0
 }

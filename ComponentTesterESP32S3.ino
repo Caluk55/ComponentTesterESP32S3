@@ -30,17 +30,17 @@ void loop() {
   // --- TEST COMPONENTI IN SEQUENZA ---
 
   // Resistenze
-test::detectResistorTP(TEST_POINT_1, TP2);
+test::detectResistorTP(TEST_POINT_1, TEST_POINT_2);
   delay(1000);
 
   // Diodi
   test::detectDiodeTP(TEST_POINT_1, TEST_POINT_2);
   delay(1000);
-  test::detectDiodeBetween(TEST_POINT_1, TEST_POINT_2);
+  test::detectDiodeTP(TEST_POINT_1, TEST_POINT_2);
   delay(1000);
-  test::detectDiodeBetween(TEST_POINT_2, TEST_POINT_3);
+  test::detectDiodeTP(TEST_POINT_2, TEST_POINT_3);
   delay(1000);
-  test::detectDiodeBetween(TP3, TEST_POINT_1);
+  test::detectDiodeTP(TEST_POINT_3, TEST_POINT_1);
   delay(1000);
 
   // Doppio diodo / LED

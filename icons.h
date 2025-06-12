@@ -1,5 +1,6 @@
 #ifndef ICONS_H
 #define ICONS_H
+#define PIN_NONE 0x00
 
 #include <Arduino.h> // Per uint8_t, PROGMEM
 
