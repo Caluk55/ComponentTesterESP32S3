@@ -4,6 +4,10 @@
 #include "display.h"
 #include "config.h"
 
+#define STEPUP_EN  12  // GPIO che abilita lo step-up
+#define VZ_MIN     2.5 // soglia minima per considerare un breakdown
+#define VZ_MAX    35.0 // soglia massima misurabile
+
 namespace test {
 
     void detectResistorTP1TP2() {
@@ -570,7 +574,48 @@ void test::testTRIAC() {
 }
 showMessage(msg);
 
+void test::testZener() {
+    display::print("Test Zener");
 
+    pinMode(STEPUP_EN, OUTPUT);
+    digitalWrite(STEPUP_EN, LOW);  // step-up disattivo
 
+    for (uint8_t i = 0; i < 3; ++i) {
+        uint8_t anodo  = i;
+        uint8_t catodo = (i + 1) % 3;
+
+        dischargeAll();
+
+        // Test in diretta: anodo LOW, catodo HIGH
+        setLow(anodo);
+        setHigh(catodo);
+        delay(10);
+        float vf = readVoltage(anodo);  // tensione diretta
+
+        // Test in inversa con step-up
+        dischargeAll();
+        setLow(anodo);
+        digitalWrite(STEPUP_EN, HIGH);  // attiva boost
+        setHigh(catodo);                // catodo verso boost
+        delay(50);                      // tempo per stabilizzare
+
+        float vz = readVoltage(anodo);  // tensione inversa (su anodo)
+
+        digitalWrite(STEPUP_EN, LOW);   // disattiva boost
+        dischargeAll();
+
+        if (vf < 1.0 && vz > VZ_MIN && vz < VZ_MAX) {
+            display::print("Zener rilevato");
+            display::print("Anodo: TP" + String(anodo + 1));
+            display::print("Catodo: TP" + String(catodo + 1));
+            display::print("Vz ≈ " + String(vz, 1) + " V");
+            return;
+        }
+    }
+
+    display::print("Nessun Zener rilevato");
+}
+
+showMessage(msg);
 
 }
