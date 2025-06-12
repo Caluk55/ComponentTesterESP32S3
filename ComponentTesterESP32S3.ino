@@ -1,81 +1,112 @@
-// VERSIONE ATTUALE: aggiornata con initADC, initDisplay, initProbes, ecc.
-// Vedi anche moduli: ADC.cpp, display.cpp, commands.cpp
-
-#include <TFT_eSPI.h>
 #include <Arduino.h>
-// Moduli core
 #include "config.h"
-#include "variables.h"
 #include "display.h"
-#include "commands.h"
-#include "user.h"
 #include "adc.h"
-#include "PWM.h"
-#include "probes.h"
-#include "tp.h
+#include "tp.h"
 #include "test.h"
-
-TFT_eSPI tft = TFT_eSPI();  // Oggetto globale del display
 
 void setup() {
   Serial.begin(115200);
   delay(100);
-  display::showWelcomeScreen();   // Mostra messaggio iniziale
-  tp.begin()
-  initConfig();
-  initDisplay(&tft);
-  showSplash();
 
-  initADC();
-  initPWM();
-  initProbes();
-  
-
-  initCommands();
-  initUser();
+  initDisplay();
+  tp::init();
+  adc::init();
+  display::showWelcomeScreen();
 }
 
 void loop() {
-  commandsLoop();  // Gestione automatica
-  userLoop();      // Eventuale interazione manuale
-  tp.runTestCycle()
+  // Leggi e mostra le tensioni sui test point
   float v1 = adc::readVoltage(tp::TP1);
   float v2 = adc::readVoltage(tp::TP2);
   float v3 = adc::readVoltage(tp::TP3);
 
-  display::clear();  // Pulisce lo schermo prima di aggiornare
+  display::clear();
   display::showVoltage(v1, "TP1");
   display::showVoltage(v2, "TP2");
   display::showVoltage(v3, "TP3");
 
-  delay(1000);  // Aggiorna ogni secondo
+  delay(1000);
+
+  // --- TEST COMPONENTI IN SEQUENZA ---
+
+  // Resistenze
   test::detectResistorTP1TP2();
-  delay(3000);
+  delay(1000);
+
+  // Diodi
   test::detectDiodeTP1TP2();
-delay(3000);
-test::detectDiodeBetween(tp::TP1, tp::TP2);
-delay(2000);
-test::detectDiodeBetween(tp::TP2, tp::TP3);
-delay(2000);
-test::detectDiodeBetween(tp::TP3, tp::TP1);
-delay(2000);
-test::detectDoubleDiodeOrLED(tp::TP1, tp::TP2);
-delay(2000);
-test::detectDoubleDiodeOrLED(tp::TP2, tp::TP3);
-delay(2000);
-test::detectDoubleDiodeOrLED(tp::TP3, tp::TP1);
-delay(2000);
- test::detectBJT();
-  delay(2000);
+  delay(1000);
+  test::detectDiodeBetween(tp::TP1, tp::TP2);
+  delay(1000);
+  test::detectDiodeBetween(tp::TP2, tp::TP3);
+  delay(1000);
+  test::detectDiodeBetween(tp::TP3, tp::TP1);
+  delay(1000);
+
+  // Doppio diodo / LED
+  test::detectDoubleDiodeOrLED(tp::TP1, tp::TP2);
+  delay(1000);
+  test::detectDoubleDiodeOrLED(tp::TP2, tp::TP3);
+  delay(1000);
+  test::detectDoubleDiodeOrLED(tp::TP3, tp::TP1);
+  delay(1000);
+
+  // BJT (transistor bipolari)
+  test::detectBJT();
+  delay(1000);
+
+  // MOSFET
+  test::detectMOSFET();
+  delay(1000);
+
+  // JFET
+  test::detectJFET();
+  delay(1000);
+
+  // IGBT
+  test::detectIGBT();
+  delay(1000);
+
+  // SCR
+  test::detectSCR();
+  delay(1000);
+
+  // Triac
+  test::detectTriac();
+  delay(1000);
+
+  // PUT
+  test::detectPUT();
+  delay(1000);
+
+  // UJT
+  test::detectUJT();
+  delay(1000);
+
+  // Zener
+  test::detectZenerDiode();
+  delay(1000);
+
+  // Quartz crystal
+  test::detectQuartzCrystal();
+  delay(1000);
+
+  // OneWire device (es. DS18B20)
+  test::detectOneWireDevice();
+  delay(1000);
+
+  // Induttore
+  test::detectInductor();
+  delay(1000);
+
+  // Condensatore
   test::detectCapacitor();
-delay(2000);
-test::detectInductor();
-delay(2000);
-test::detectMOSFET();
-delay(2000);
-test::runAll();  // Esegue tutti i test in sequenza
-delay(2000);
+  delay(1000);
 
+  // Per test multipli o esecuzione batch, puoi anche chiamare:
+  // test::runAll();
 
-
+  // Attendi prima di ripetere il ciclo
+  delay(2000);
 }

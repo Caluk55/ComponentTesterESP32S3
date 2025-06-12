@@ -1,621 +1,798 @@
 #include "test.h"
-#include "tp.h"
 #include "adc.h"
 #include "display.h"
+#include "tp.h"
 #include "config.h"
-
-#define STEPUP_EN  12  // GPIO che abilita lo step-up
-#define VZ_MIN     2.5 // soglia minima per considerare un breakdown
-#define VZ_MAX    35.0 // soglia massima misurabile
 
 namespace test {
 
-    void detectResistorTP1TP2() {
-        tp::configureAsOutput(tp::TP1);
-        tp::setLevel(tp::TP1, true);
-
-        tp::configureAsInput(tp::TP2);
-
-        delay(10);  // Stabilizzazione
-
-        float v_out = adc::readVoltage(tp::TP2);
-
-        if (v_out < VOLTAGE_THRESHOLD_LOW || v_out > VOLTAGE_THRESHOLD_HIGH) {
-            display::clear();
-            display::showMessage("Valore fuori range", TFT_RED);
-            return;
-        }
-
-        float v_in = ADC_VREF;  // Tensione HIGH su TP1
-        float r_fixed = TP_PULL_RESISTANCE;  // Resistenza verso massa
-
-        // Calcolo partitore inverso
-        float r_unknown = (v_out * r_fixed) / (v_in - v_out);
-
-        display::clear();
-        display::showMessage("Resistenza rilevata:", TFT_YELLOW);
-        display::showMessage("TP1 ➝ TP2", TFT_GREEN);
-
-        display::tft.setCursor(10, 100);
-        if (r_unknown < 1000)
-            display::tft.printf("%.0f Ohm", r_unknown);
-        else
-            display::tft.printf("%.2f kOhm", r_unknown / 1000.0f);
+// --- Utility di visualizzazione ---
+namespace {
+void showRes(float r) {
+    if (r < 1000.0f) {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%.2f Ohm", r);
+        display::showMessage(buf);
+    } else if (r < 1e6f) {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%.2f kOhm", r/1000.0f);
+        display::showMessage(buf);
+    } else {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%.2f MOhm", r/1e6f);
+        display::showMessage(buf);
     }
+}
+void showInd(float l) {
+    if (l < 1e-6)
+        display::showMessage("Induttanza troppo bassa");
+    else if (l < 1e-3) {
+        char buf[20];
+        snprintf(buf, sizeof(buf), "%.2f uH", l * 1e6);
+        display::showMessage(buf);
+    } else if (l < 1) {
+        char buf[20];
+        snprintf(buf, sizeof(buf), "%.2f mH", l * 1e3);
+        display::showMessage(buf);
+    } else {
+        char buf[20];
+        snprintf(buf, sizeof(buf), "%.2f H", l);
+        display::showMessage(buf);
+    }
+}
+}
 
-void test::detectDiodeTP1TP2() {
-    float v_forward = 0.0f;
-    float v_reverse = 0.0f;
+// --- Inizializzazione ---
+void init() {
+    // Eventuali inizializzazioni hardware
+}
 
-    // Test direzione TP1 ➝ TP2
-    tp::configureAsOutput(tp::TP1);
-    tp::setLevel(tp::TP1, true);
-    tp::configureAsInput(tp::TP2);
-    delay(10);
-    v_forward = adc::readVoltage(tp::TP2);
+// --- 1. Resistenze ---
+void detectResistorTP(TP a, TP b) {
+    tp::floatAll();
+    delay(5);
+    tp::setMode(a, OUTPUT); tp::write(a, HIGH);
+    tp::setMode(b, OUTPUT); tp::write(b, LOW);
 
-    // Test direzione TP2 ➝ TP1
-    tp::configureAsOutput(tp::TP2);
-    tp::setLevel(tp::TP2, true);
-    tp::configureAsInput(tp::TP1);
-    delay(10);
-    v_reverse = adc::readVoltage(tp::TP1);
+    delay(5);
+    float va = adc::readVoltage(a);
+    float vb = adc::readVoltage(b);
+    float v_drop = va - vb;
+    float current = (ADC_VREF - va) / TP_SERIES_RESISTANCE;
+    if (current < 1e-7) current = 1e-7;
+    float r = v_drop / current - TP_SERIES_RESISTANCE;
 
     display::clear();
-    display::showMessage("Test Diodo TP1–TP2", TFT_CYAN);
-
-    if (v_forward > 0.4f && v_forward < 0.85f && v_reverse < 0.15f) {
-        display::showMessage("Diodo rilevato ➝", TFT_GREEN);
-        display::tft.setCursor(10, 100);
-        display::tft.printf("Anodo: TP1\nCatodo: TP2\nVf: %.2f V", v_forward);
-    } else if (v_reverse > 0.4f && v_reverse < 0.85f && v_forward < 0.15f) {
-        display::showMessage("Diodo rilevato ⇦", TFT_GREEN);
-        display::tft.setCursor(10, 100);
-        display::tft.printf("Anodo: TP2\nCatodo: TP1\nVf: %.2f V", v_reverse);
-    } else {
-        display::showMessage("Nessun diodo rilevato", TFT_RED);
-        display::tft.setCursor(10, 100);
-        display::tft.printf("Vf: %.2f V\nVr: %.2f V", v_forward, v_reverse);
-    }
+    display::showMessage("Resistenza tra TP:");
+    showRes(r);
+}
+void detectResistors() {
+    detectResistorTP(TP1, TP2); delay(500);
+    detectResistorTP(TP2, TP3); delay(500);
+    detectResistorTP(TP3, TP1); delay(500);
 }
 
-void test::detectDiodeBetween(tp::TPLabel a, tp::TPLabel b) {
-    float v_ab = 0.0f;
-    float v_ba = 0.0f;
-
-    // Test direzione A ➝ B
-    tp::configureAsOutput(a);
-    tp::setLevel(a, true);
-    tp::configureAsInput(b);
-    delay(10);
-    v_ab = adc::readVoltage(b);
-
-    // Test direzione B ➝ A
-    tp::configureAsOutput(b);
-    tp::setLevel(b, true);
-    tp::configureAsInput(a);
-    delay(10);
-    v_ba = adc::readVoltage(a);
+// --- 2. Diodi/LED ---
+void detectDiodeTP(TP a, TP b) {
+    tp::floatAll();
+    delay(5);
+    tp::setMode(a, OUTPUT); tp::write(a, HIGH);
+    tp::setMode(b, OUTPUT); tp::write(b, LOW);
+    delay(5);
+    float v_fwd = adc::readVoltage(a) - adc::readVoltage(b);
+    tp::write(a, LOW); tp::write(b, HIGH);
+    delay(5);
+    float v_rev = adc::readVoltage(b) - adc::readVoltage(a);
 
     display::clear();
-    display::showMessage("Test Diodo", TFT_CYAN);
-
-    if (v_ab > 0.4f && v_ab < 0.85f && v_ba < 0.15f) {
-        display::showMessage("Diodo rilevato ➝", TFT_GREEN);
-        display::tft.setCursor(10, 100);
-        display::tft.printf("Anodo: TP%d\nCatodo: TP%d\nVf: %.2f V", a + 1, b + 1, v_ab);
-    } else if (v_ba > 0.4f && v_ba < 0.85f && v_ab < 0.15f) {
-        display::showMessage("Diodo rilevato ⇦", TFT_GREEN);
-        display::tft.setCursor(10, 100);
-        display::tft.printf("Anodo: TP%d\nCatodo: TP%d\nVf: %.2f V", b + 1, a + 1, v_ba);
+    if (v_fwd > 0.25f && v_fwd < 2.5f && v_rev < 0.2f) {
+        display::showMessage("Diodo rilevato:");
+        display::showVoltage(v_fwd, "Vf");
     } else {
-        display::showMessage("Nessun diodo rilevato", TFT_RED);
-        display::tft.setCursor(10, 100);
-        display::tft.printf("TP%d–TP%d\nVf: %.2f V\nVr: %.2f V", a + 1, b + 1, v_ab, v_ba);
+        display::showMessage("Nessun diodo");
     }
 }
-void test::detectDoubleDiodeOrLED(tp::TPLabel a, tp::TPLabel b) {
-    float v_ab = 0.0f;
-    float v_ba = 0.0f;
+void detectDiodes() {
+    detectDiodeTP(TP1, TP2); delay(500);
+    detectDiodeTP(TP2, TP3); delay(500);
+    detectDiodeTP(TP3, TP1); delay(500);
+}
 
-    // Test A ➝ B
-    tp::configureAsOutput(a);
-    tp::setLevel(a, true);
-    tp::configureAsInput(b);
+// --- 3. Zener ---
+void detectZenerTP(TP a, TP b) {
+    // Principio: polarizzo il diodo inversamente e misuro la tensione di soglia
+    tp::floatAll(); delay(5);
+    tp::setMode(a, OUTPUT); tp::write(a, LOW);
+    tp::setMode(b, OUTPUT); tp::write(b, HIGH);
     delay(10);
-    v_ab = adc::readVoltage(b);
-
-    // Test B ➝ A
-    tp::configureAsOutput(b);
-    tp::setLevel(b, true);
-    tp::configureAsInput(a);
-    delay(10);
-    v_ba = adc::readVoltage(a);
+    float v_zener = adc::readVoltage(a) - adc::readVoltage(b);
 
     display::clear();
-    display::showMessage("Test Diodo/LED", TFT_MAGENTA);
-
-    const float LED_THRESHOLD_MIN = 1.5f;
-    const float LED_THRESHOLD_MAX = 3.3f;
-
-    bool ab_led = (v_ab >= LED_THRESHOLD_MIN && v_ab <= LED_THRESHOLD_MAX && v_ba < 0.2f);
-    bool ba_led = (v_ba >= LED_THRESHOLD_MIN && v_ba <= LED_THRESHOLD_MAX && v_ab < 0.2f);
-
-    bool both_diode =
-        (v_ab > 0.4f && v_ab < 0.85f) &&
-        (v_ba > 0.4f && v_ba < 0.85f);
-
-    if (both_diode) {
-        display::showMessage("Doppio diodo rilevato", TFT_GREEN);
-        display::tft.setCursor(10, 100);
-        display::tft.printf("TP%d ⇄ TP%d\nV1: %.2f V  V2: %.2f V", a + 1, b + 1, v_ab, v_ba);
-    } else if (ab_led || ba_led) {
-        display::showMessage("LED rilevato", TFT_YELLOW);
-        display::tft.setCursor(10, 100);
-        display::tft.printf("Anodo: TP%d\nCatodo: TP%d\nVf: %.2f V",
-                            ab_led ? a + 1 : b + 1,
-                            ab_led ? b + 1 : a + 1,
-                            ab_led ? v_ab : v_ba);
+    if (v_zener > 2.0f && v_zener < 24.0f) { // tipico range Zener
+        display::showMessage("Zener rilevato:");
+        display::showVoltage(v_zener, "Vz");
     } else {
-        display::showMessage("Nessun LED o doppio diodo", TFT_RED);
-        display::tft.setCursor(10, 100);
-        display::tft.printf("TP%d–TP%d\nV1: %.2f V  V2: %.2f V", a + 1, b + 1, v_ab, v_ba);
+        display::showMessage("Nessun Zener");
     }
 }
-void detectBJT() {
-  using namespace tp;
-  using namespace adc;
-  using namespace display;
-
-  int base = -1, t1 = -1, t2 = -1;
-  bool isNPN = false, bjtFound = false;
-
-  // Identifica la base tramite doppia giunzione
-  for (int i = 0; i < 3; ++i) {
-    int j = (i + 1) % 3;
-    int k = (i + 2) % 3;
-
-    float vij = detectDiodeBetween(i, j);
-    float vik = detectDiodeBetween(i, k);
-    float vji = detectDiodeBetween(j, i);
-    float vki = detectDiodeBetween(k, i);
-
-    if (vij > 0.4f && vik > 0.4f) {
-      base = i; t1 = j; t2 = k;
-      isNPN = true;
-      bjtFound = true;
-      break;
-    } else if (vji > 0.4f && vki > 0.4f) {
-      base = i; t1 = j; t2 = k;
-      isNPN = false;
-      bjtFound = true;
-      break;
-    }
-  }
-
-  if (!bjtFound) {
-    showMessage("Nessun BJT rilevato");
-    return;
-  }
-
-  // Polarizza la base
-  setMode(base, Mode::OUT);
-  write(base, isNPN ? HIGH : LOW);
-  delay(5);
-
-  // Imposta TP candidati a C/E come input
-  setMode(t1, Mode::IN);
-  setMode(t2, Mode::IN);
-  setMode((isNPN ? t2 : t1), Mode::GND);  // Emettitore a GND
-
-  delay(10);
-  float vt1 = readVoltage(t1);
-  float vt2 = readVoltage(t2);
-
-  int collector, emitter;
-  if ((isNPN && vt1 > vt2) || (!isNPN && vt1 < vt2)) {
-    collector = t1;
-    emitter = t2;
-  } else {
-    collector = t2;
-    emitter = t1;
-  }
-
-  // Stima hFE
-  float Vcc = 3.3f;
-  float v_collettore = readVoltage(collector);
-  float ic = (Vcc - v_collettore) / TP_SERIES_RESISTANCE;
-  float ib = 0.00005f; // stima fissa
-  float hfe = ic / ib;
-
-  // Output
-  String tipo = isNPN ? "NPN" : "PNP";
-  String msg = "BJT: " + tipo + "\n";
-  msg += "B=TP" + String(base + 1);
-  msg += " C=TP" + String(collector + 1);
-  msg += " E=TP" + String(emitter + 1);
-  msg += "\nhFE ≈ " + String((int)hfe);
-
-  showMessage(msg);
+void detectZenerDiodes() {
+    detectZenerTP(TP1, TP2); delay(500);
+    detectZenerTP(TP2, TP3); delay(500);
+    detectZenerTP(TP3, TP1); delay(500);
 }
 
-void test::detectCapacitor() {
-  using namespace tp;
-  using namespace adc;
-  using namespace display;
+// --- 4. Induttori ---
+void detectInductorTP(TP a, TP b) {
+    // Metodo semplificato GM328: applico un impulso noto, misuro la variazione di corrente/tensione
+    // Nota: molto semplificato, la precisione dipende dall'implementazione hardware!
+    tp::floatAll();
+    delay(5);
 
-  struct CapResult {
-    int tp1, tp2;
-    float capacitance_uF;
-    float esr_ohm;
-    bool polarized;
-    bool valid;
-  };
+    // Scarica res. parassite
+    tp::setMode(a, OUTPUT); tp::write(a, LOW);
+    tp::setMode(b, OUTPUT); tp::write(b, LOW);
+    delay(10);
 
-  auto measureCap = [](int a, int b) -> CapResult {
-    CapResult result = {a, b, 0.0f, 0.0f, false, false};
-    const float Vth = 1.1f;
-    const float Vcc = 3.3f;
-    const float R = TP_SERIES_RESISTANCE;
+    // Impulso: a HIGH, b INPUT
+    tp::setMode(a, OUTPUT); tp::write(a, HIGH);
+    tp::setMode(b, INPUT);
+    delayMicroseconds(100);
 
-    // Scarica
-    setMode(a, Mode::GND);
-    setMode(b, Mode::GND);
-    delay(20);
+    // Misura picco su b
+    float v_peak = adc::readVoltage(b);
 
-    // Carica
-    setMode(a, Mode::OUT);
-    write(a, HIGH);
-    setMode(b, Mode::IN);
+    // Formula (da GM328): L = (Vref * dt) / dI
+    // Qui dt = durata impulso, dI stimata in base a R serie
+    float dt = 100e-6f; // 100 us
+    float dI = ADC_VREF / TP_SERIES_RESISTANCE;
+    float L = (v_peak * dt) / dI;
+
+    display::clear();
+    display::showMessage("Induttanza TP:");
+    showInd(L);
+}
+void detectInductors() {
+    detectInductorTP(TP1, TP2); delay(1000);
+    detectInductorTP(TP2, TP3); delay(1000);
+    detectInductorTP(TP3, TP1); delay(1000);
+}
+
+// --- 5. Condensatori ---
+void detectCapacitorTP(TP a, TP b) {
+    tp::floatAll(); delay(5);
+    tp::setMode(a, OUTPUT); tp::write(a, LOW);
+    tp::setMode(b, OUTPUT); tp::write(b, LOW);
+    delay(50);
+
+    tp::setMode(a, OUTPUT); tp::write(a, HIGH);
+    tp::setMode(b, INPUT);
+    delay(2);
 
     unsigned long t0 = millis();
-    float v = 0;
-    while ((millis() - t0) < 1000) {
-      v = readVoltage(b);
-      if (v >= Vth) break;
+    float vb = 0;
+    const float Vtarget = 0.632f * ADC_VREF;
+    while (vb < Vtarget && millis() - t0 < 250) {
+        vb = adc::readVoltage(b);
     }
-    unsigned long dt = millis() - t0;
-    if (dt == 0 || v < Vth) return result;
+    unsigned long t1 = millis();
+    float dt = (float)(t1 - t0) / 1000.0f;
+    float c = dt / TP_SERIES_RESISTANCE;
 
-    float C = (dt / 1000.0f) / R;
-    float C_uF = C * 1e6f;
-    if (C_uF < 0.1f || C_uF > 5000.0f) return result;
-
-    // ESR
-    setMode(a, Mode::GND);
-    setMode(b, Mode::IN);
-    delay(5);
-    float vDrop = readVoltage(b);
-    float i = Vcc / R;
-    float esr = vDrop / i;
-
-    // Polarità (grezza): tensione sale solo in una direzione
-    bool polarized = false;
-    if (vDrop < 0.3f) {
-      // Inverti polarità e riprova
-      setMode(b, Mode::OUT);
-      write(b, HIGH);
-      setMode(a, Mode::IN);
-      delay(10);
-      float vInv = readVoltage(a);
-      if (vInv < 0.3f) polarized = true;
-    }
-
-    result.capacitance_uF = C_uF;
-    result.esr_ohm = esr;
-    result.polarized = polarized;
-    result.valid = true;
-    return result;
-  };
-
-  CapResult best = {};
-  for (int i = 0; i < 3; ++i) {
-    for (int j = i + 1; j < 3; ++j) {
-      CapResult r = measureCap(i, j);
-      if (r.valid && r.capacitance_uF > best.capacitance_uF)
-        best = r;
-    }
-  }
-
-  if (!best.valid) {
-    showMessage("Nessun condensatore rilevato");
-    return;
-  }
-
-  String msg = "Condensatore\n";
-  msg += "TP" + String(best.tp1 + 1) + " - TP" + String(best.tp2 + 1) + "\n";
-  msg += String(best.capacitance_uF, 1) + " µF\n";
-  msg += "ESR ≈ " + String(best.esr_ohm, 1) + " Ω";
-  if (best.polarized) msg += "\nPolarizzato";
-
-  showMessage(msg);
+    display::clear();
+    display::showMessage("Capacita' TP:");
+    char buf[24];
+    if (c < 1e-9)
+        snprintf(buf, sizeof(buf), "%.2f pF", c*1e12);
+    else if (c < 1e-6)
+        snprintf(buf, sizeof(buf), "%.2f nF", c*1e9);
+    else if (c < 1e-3)
+        snprintf(buf, sizeof(buf), "%.2f uF", c*1e6);
+    else
+        snprintf(buf, sizeof(buf), "%.2f mF", c*1e3);
+    display::showMessage(buf);
+}
+void detectCapacitors() {
+    detectCapacitorTP(TP1, TP2); delay(1000);
+    detectCapacitorTP(TP2, TP3); delay(1000);
+    detectCapacitorTP(TP3, TP1); delay(1000);
 }
 
-void test::detectInductor() {
-  using namespace tp;
-  using namespace adc;
-  using namespace display;
+// --- 6. BJT ---
+void detectBJT() {
+    struct BJTTest { TP e, b, c; } combos[6] = {
+        {TP1, TP2, TP3}, {TP1, TP3, TP2},
+        {TP2, TP1, TP3}, {TP2, TP3, TP1},
+        {TP3, TP1, TP2}, {TP3, TP2, TP1}
+    };
+    for (int i = 0; i < 6; ++i) {
+        TP e = combos[i].e, b = combos[i].b, c = combos[i].c;
 
-  struct InductanceResult {
-    int tp1, tp2;
-    float inductance_H;
-    float resistance_ohm;
-    bool valid;
-  };
-
-  auto measureInductor = [](int a, int b) -> InductanceResult {
-    InductanceResult result = {a, b, 0.0f, 0.0f, false};
-    const float Vcc = 3.3f;
-    const float V_trigger = 1.0f;
-    const float R = TP_SERIES_RESISTANCE;
-
-    // Scarica
-    setMode(a, Mode::GND);
-    setMode(b, Mode::GND);
-    delay(20);
-
-    // Carica tramite R: A = HIGH, B = IN
-    setMode(a, Mode::OUT);
-    write(a, HIGH);
-    setMode(b, Mode::IN);
-
-    unsigned long t0 = micros();
-    float v = 0;
-    while ((micros() - t0) < 300000) {
-      v = readVoltage(b);
-      if (v >= V_trigger) break;
+        // NPN
+        tp::floatAll();
+        tp::setMode(b, OUTPUT); tp::write(b, HIGH);
+        tp::setMode(e, OUTPUT); tp::write(e, LOW);
+        tp::setMode(c, INPUT);
+        delay(5);
+        float v_be = adc::readVoltage(b) - adc::readVoltage(e);
+        float v_bc = adc::readVoltage(b) - adc::readVoltage(c);
+        if (v_be > 0.55 && v_be < 0.8 && v_bc > 0.55 && v_bc < 0.8) {
+            display::clear();
+            display::showMessage("BJT NPN rilevato");
+            char buf[32];
+            snprintf(buf, sizeof(buf), "E=%d B=%d C=%d", e+1, b+1, c+1);
+            display::showMessage(buf);
+            return;
+        }
+        // PNP
+        tp::floatAll();
+        tp::setMode(b, OUTPUT); tp::write(b, LOW);
+        tp::setMode(e, OUTPUT); tp::write(e, HIGH);
+        tp::setMode(c, INPUT);
+        delay(5);
+        v_be = adc::readVoltage(e) - adc::readVoltage(b);
+        v_bc = adc::readVoltage(c) - adc::readVoltage(b);
+        if (v_be > 0.55 && v_be < 0.8 && v_bc > 0.55 && v_bc < 0.8) {
+            display::clear();
+            display::showMessage("BJT PNP rilevato");
+            char buf[32];
+            snprintf(buf, sizeof(buf), "E=%d B=%d C=%d", e+1, b+1, c+1);
+            display::showMessage(buf);
+            return;
+        }
     }
-    unsigned long t1 = micros();
-    unsigned long delta_t_us = t1 - t0;
-    if (delta_t_us < 100 || delta_t_us > 250000) return result;
-
-    float time_s = delta_t_us / 1e6f;
-    float L = R * time_s;  // H
-
-    // Stima Rdc
-    setMode(a, Mode::OUT);
-    write(a, HIGH);
-    setMode(b, Mode::GND);
-    delay(10);
-    setMode(a, Mode::IN);
-    delayMicroseconds(50);
-    float vDrop = readVoltage(a);
-    float i = Vcc / R;
-    float Rdc = (Vcc - vDrop) / i;
-
-    result.inductance_H = L;
-    result.resistance_ohm = Rdc;
-    result.valid = true;
-    return result;
-  };
-
-  InductanceResult best = {};
-  for (int i = 0; i < 3; ++i) {
-    for (int j = i + 1; j < 3; ++j) {
-      InductanceResult r = measureInductor(i, j);
-      if (r.valid && r.inductance_H > best.inductance_H)
-        best = r;
-    }
-  }
-
-  if (!best.valid) {
-    showMessage("Nessun induttore rilevato");
-    return;
-  }
-
-  String msg = "Induttore\nTP" + String(best.tp1 + 1) + " - TP" + String(best.tp2 + 1) + "\n";
-  msg += String(best.inductance_H * 1000.0f, 2) + " mH\n";
-  msg += "Rdc ≈ " + String(best.resistance_ohm, 1) + " Ω";
-  showMessage(msg);
+    display::clear();
+    display::showMessage("Nessun BJT trovato");
 }
 
-void test::detectMOSFET() {
-  using namespace tp;
-  using namespace adc;
-  using namespace display;
-
-  struct MosfetResult {
-    int gate, drain, source;
-    bool isNchannel;
-    float rdson;
-    bool valid;
-  };
-
-  auto detectDiode = [](int a, int b) -> bool {
-    float v1 = tp::detectDiodeBetween(a, b);
-    float v2 = tp::detectDiodeBetween(b, a);
-    return (v1 > 0.4f || v2 > 0.4f);
-  };
-
-  MosfetResult result = {0, 0, 0, true, 0.0f, false};
-
-  for (int g = 0; g < 3; ++g) {
-    int d = (g + 1) % 3;
-    int s = (g + 2) % 3;
-
-    if (!detectDiode(d, s)) continue;
-
-    // Tenta NMOS
-    setMode(g, Mode::OUT);
-    write(g, HIGH);  // G=HIGH
-    setMode(s, Mode::GND);
-    setMode(d, Mode::IN);
+// --- 7. MOSFET (N/P, enhancement) ---
+void detectMOSFET() {
+    // Esempio N-MOSFET (solo logica base)
+    tp::floatAll();
+    tp::setMode(TP1, OUTPUT); tp::write(TP1, HIGH);
+    tp::setMode(TP2, OUTPUT); tp::write(TP2, LOW);
+    tp::setMode(TP3, INPUT);
     delay(5);
-
-    float vN = readVoltage(d);
-    bool condN = vN > 0.5f;
-
-    // Tenta PMOS
-    write(g, LOW);  // G=LOW
-    setMode(s, Mode::VCC);
-    setMode(d, Mode::IN);
-    delay(5);
-
-    float vP = readVoltage(d);
-    bool condP = vP < 2.8f;
-
-    if (condN || condP) {
-      result.gate = g;
-      result.drain = d;
-      result.source = s;
-      result.isNchannel = condN;
-      result.valid = true;
-      break;
+    float v_ds = adc::readVoltage(TP3) - adc::readVoltage(TP2);
+    float v_gs = adc::readVoltage(TP1) - adc::readVoltage(TP2);
+    if (v_ds < 0.1 && v_gs > 1.5) {
+        display::clear();
+        display::showMessage("N-MOSFET rilevato");
+        display::showMessage("G=TP1 S=TP2 D=TP3");
+        return;
     }
-  }
-
-  if (!result.valid) {
-    showMessage("Nessun MOSFET rilevato");
-    return;
-  }
-
-  // Calcolo Rdson
-  setMode(result.gate, Mode::OUT);
-  write(result.gate, result.isNchannel ? HIGH : LOW);
-  setMode(result.source, result.isNchannel ? Mode::GND : Mode::VCC);
-  setMode(result.drain, Mode::IN);
-  delay(10);
-  float vOut = readVoltage(result.drain);
-  float i = 3.3f / TP_SERIES_RESISTANCE;
-  float vds = result.isNchannel ? (3.3f - vOut) : vOut;
-  float rds = vds / i;
-
-  // Output
-  String msg = (result.isNchannel ? "N-MOSFET\n" : "P-MOSFET\n");
-  msg += "G=TP" + String(result.gate + 1);
-  msg += " D=TP" + String(result.drain + 1);
-  msg += " S=TP" + String(result.source + 1);
-  msg += "\nRds(on) ≈ " + String(rds, 1) + " Ω";
-
-  showMessage(msg);
+    display::clear();
+    display::showMessage("Nessun MOSFET trovato");
 }
 
-void test::testSCR() {
-    display::print("Test SCR");
+// --- 8. JFET ---
+// Rileva e identifica JFET N/P, ispirato alla logica GM328/HoRo
+void test::detectJFET() {
+    display::clear();
+    display::showMessage("Rilevamento JFET...");
 
-    for (uint8_t i = 0; i < 3; ++i) {
-        uint8_t A = i;
-        uint8_t K = (i + 1) % 3;
-        uint8_t G = (i + 2) % 3;
+    // Combinazioni possibili di TP: (S, D, G)
+    struct JFETTest { TP s, d, g; };
+    const JFETTest combos[6] = {
+        {TP1, TP2, TP3}, {TP1, TP3, TP2},
+        {TP2, TP1, TP3}, {TP2, TP3, TP1},
+        {TP3, TP1, TP2}, {TP3, TP2, TP1}
+    };
 
-        dischargeAll();
+    bool found = false;
+    for (int i = 0; i < 6 && !found; ++i) {
+        TP s = combos[i].s, d = combos[i].d, g = combos[i].g;
 
-        // Applica tensione tra A e K
-        setHigh(A);
-        setLow(K);
+        // 1. Misura la conduzione S-D con G floating (INPUT)
+        tp::floatAll();
+        tp::setMode(g, INPUT);  // gate flottante
+        tp::setMode(s, OUTPUT); tp::write(s, LOW);
+        tp::setMode(d, OUTPUT); tp::write(d, HIGH);
         delay(10);
-        bool conductsBefore = readVoltage(K) > threshold;
 
-        // Impulso su Gate
-        pulse(G, 5);  // impulso breve
+        float vs_f = adc::readVoltage(s);
+        float vd_f = adc::readVoltage(d);
+        float v_sd_f = vd_f - vs_f;
+
+        // 2. Misura la conduzione S-D con Gate polarizzato (LOW per N, HIGH per P)
+        // 2a. Gate a LOW (N-JFET test)
+        tp::setMode(g, OUTPUT); tp::write(g, LOW);  // gate a GND
         delay(10);
-        bool conductsAfter = readVoltage(K) > threshold;
+        float vs_n = adc::readVoltage(s);
+        float vd_n = adc::readVoltage(d);
+        float v_sd_n = vd_n - vs_n;
 
-        // Reset
-        setLow(A);
+        // 2b. Gate a HIGH (P-JFET test)
+        tp::write(g, HIGH);
+        delay(10);
+        float vs_p = adc::readVoltage(s);
+        float vd_p = adc::readVoltage(d);
+        float v_sd_p = vd_p - vs_p;
+
+        // 3. Analisi risultati:
+        // Se G floating: v_sd_f bassa (canale conduttivo)
+        // Se Gate LOW (N-JFET): v_sd_n molto più alta (canale "chiuso")
+        // Se Gate HIGH (P-JFET): v_sd_p molto più alta (canale "chiuso")
+
+        // Soglie empiriche (adatta al tuo hardware, qui stile HoRo):
+        bool is_njfet = (v_sd_f < 0.5 && v_sd_n > 2.0 && v_sd_p < 0.5);
+        bool is_pjfet = (v_sd_f < 0.5 && v_sd_n < 0.5 && v_sd_p > 2.0);
+
+        if (is_njfet) {
+            display::clear();
+            display::showMessage("N-JFET rilevato");
+            char buf[32];
+            snprintf(buf, sizeof(buf), "S=%d D=%d G=%d", s+1, d+1, g+1);
+            display::showMessage(buf);
+            found = true;
+        } else if (is_pjfet) {
+            display::clear();
+            display::showMessage("P-JFET rilevato");
+            char buf[32];
+            snprintf(buf, sizeof(buf), "S=%d D=%d G=%d", s+1, d+1, g+1);
+            display::showMessage(buf);
+            found = true;
+        }
+        // Al prossimo giro cambia combinazione
+    }
+    if (!found) {
+        display::clear();
+        display::showMessage("Nessun JFET trovato");
+    }
+}
+
+// --- 9. IGBT ---
+// Rileva e identifica IGBT, ispirato alla logica GM328/HoRo
+void test::detectIGBT() {
+    display::clear();
+    display::showMessage("Rilevamento IGBT...");
+
+    // Combinazioni possibili di TP: (C, E, G)
+    struct IGBTTest { TP c, e, g; };
+    const IGBTTest combos[6] = {
+        {TP1, TP2, TP3}, {TP1, TP3, TP2},
+        {TP2, TP1, TP3}, {TP2, TP3, TP1},
+        {TP3, TP1, TP2}, {TP3, TP2, TP1}
+    };
+
+    bool found = false;
+    for (int i = 0; i < 6 && !found; ++i) {
+        TP c = combos[i].c, e = combos[i].e, g = combos[i].g;
+
+        // 1. Prepara tutti i TP in alta impedenza
+        tp::floatAll();
+        delay(10);
+
+        // 2. Applica impulso sul Gate
+        tp::setMode(g, OUTPUT); tp::write(g, HIGH); // Gate HIGH
+        tp::setMode(e, OUTPUT); tp::write(e, LOW);  // Emitter LOW
+        tp::setMode(c, INPUT);                      // Collector INPUT
+        delay(10);
+
+        // 3. Riporta il Gate a floating
+        tp::setMode(g, INPUT); // Gate floating
+
+        // 4. Misura la tensione Collector-Emitter prima e dopo l'impulso
+        float v_ce_before = adc::readVoltage(c) - adc::readVoltage(e);
+
+        // 5. Applica breve impulso Gate
+        tp::setMode(g, OUTPUT); tp::write(g, HIGH);
+        delay(10);
+        tp::setMode(g, INPUT); // Gate floating
+
+        // 6. Misura la tensione Collector-Emitter dopo l'impulso
+        float v_ce_after = adc::readVoltage(c) - adc::readVoltage(e);
+
+        // 7. Applica LOW al Collector per vedere se conduce
+        tp::setMode(c, OUTPUT); tp::write(c, LOW);
+        tp::setMode(e, OUTPUT); tp::write(e, LOW);
+        delay(10);
+        tp::setMode(c, INPUT); // Collector INPUT
+
+        // 8. Misura se la tensione su CE scende (conduzione)
+        float v_ce_conduct = adc::readVoltage(c) - adc::readVoltage(e);
+
+        // 9. Analisi logica (tolleranze da tarare a seconda del circuito)
+        // Un IGBT condurrà tra C ed E DOPO un impulso su GATE (come MOSFET)
+        if (v_ce_before > 2.0 && v_ce_after < 0.5 && v_ce_conduct < 0.5) {
+            display::clear();
+            display::showMessage("IGBT rilevato!");
+            char buf[32];
+            snprintf(buf, sizeof(buf), "C=%d E=%d G=%d", c+1, e+1, g+1);
+            display::showMessage(buf);
+            found = true;
+        }
+    }
+
+    if (!found) {
+        display::clear();
+        display::showMessage("Nessun IGBT trovato");
+    }
+}
+
+// --- 10. SCR ---
+// Rileva e identifica SCR, ispirato alla logica GM328/HoRo
+void test::detectSCR() {
+    display::clear();
+    display::showMessage("Rilevamento SCR...");
+
+    // Combinazioni possibili di TP: (A, K, G)
+    struct SCRTest { TP a, k, g; };
+    const SCRTest combos[6] = {
+        {TP1, TP2, TP3}, {TP1, TP3, TP2},
+        {TP2, TP1, TP3}, {TP2, TP3, TP1},
+        {TP3, TP1, TP2}, {TP3, TP2, TP1}
+    };
+
+    bool found = false;
+    for (int i = 0; i < 6 && !found; ++i) {
+        TP a = combos[i].a, k = combos[i].k, g = combos[i].g;
+
+        // 1. Porta tutto in alta impedenza
+        tp::floatAll();
+        delay(10);
+
+        // 2. Prepara: Anodo HIGH, Catodo LOW, Gate floating
+        tp::setMode(a, OUTPUT); tp::write(a, HIGH);
+        tp::setMode(k, OUTPUT); tp::write(k, LOW);
+        tp::setMode(g, INPUT);
+        delay(10);
+
+        // 3. Verifica che tra A e K non vi sia conduzione (SCR spento)
+        float v_ak_off = adc::readVoltage(a) - adc::readVoltage(k);
+
+        // 4. Applica impulso su Gate (breve HIGH)
+        tp::setMode(g, OUTPUT); tp::write(g, HIGH);
+        delay(5);
+        tp::write(g, LOW);
+        tp::setMode(g, INPUT);
         delay(5);
 
-        if (!conductsBefore && conductsAfter) {
-            display::print("SCR rilevato");
-            display::print("A: TP" + String(A+1));
-            display::print("K: TP" + String(K+1));
-            display::print("G: TP" + String(G+1));
-            return;
+        // 5. Verifica se ora c'è conduzione tra Anodo e Catodo (SCR acceso)
+        float v_ak_on = adc::readVoltage(a) - adc::readVoltage(k);
+
+        // 6. Analisi: se v_ak_off alto, v_ak_on basso (conduzione), è SCR
+        if (v_ak_off > 2.0 && v_ak_on < 0.5) {
+            display::clear();
+            display::showMessage("SCR rilevato!");
+            char buf[32];
+            snprintf(buf, sizeof(buf), "A=%d K=%d G=%d", a+1, k+1, g+1);
+            display::showMessage(buf);
+            found = true;
         }
     }
 
-    display::print("Nessun SCR rilevato");
+    if (!found) {
+        display::clear();
+        display::showMessage("Nessun SCR trovato");
+    }
 }
 
-showMessage(msg);
+// --- 11. Triac ---
+// Rileva e identifica Triac, ispirato alla logica GM328/HoRo
+void test::detectTriac() {
+    display::clear();
+    display::showMessage("Rilevamento Triac...");
 
-void test::testTRIAC() {
-    display::print("Test TRIAC");
+    // Combinazioni possibili di TP: (MT1, MT2, G)
+    struct TriacTest { TP mt1, mt2, g; };
+    const TriacTest combos[6] = {
+        {TP1, TP2, TP3}, {TP1, TP3, TP2},
+        {TP2, TP1, TP3}, {TP2, TP3, TP1},
+        {TP3, TP1, TP2}, {TP3, TP2, TP1}
+    };
 
-    for (uint8_t i = 0; i < 3; ++i) {
-        uint8_t A1 = i;
-        uint8_t A2 = (i + 1) % 3;
-        uint8_t G  = (i + 2) % 3;
+    bool found = false;
+    for (int i = 0; i < 6 && !found; ++i) {
+        TP mt1 = combos[i].mt1, mt2 = combos[i].mt2, g = combos[i].g;
 
-        dischargeAll();
-
-        // Applica tensione alternata simulata (es. inverti polarità)
-        setHigh(A1);
-        setLow(A2);
+        // 1. Porta tutto in alta impedenza
+        tp::floatAll();
         delay(10);
-        bool conductsBefore = readVoltage(A2) > threshold;
 
-        // Impulso su Gate
-        pulse(G, 5);
+        // 2. Prepara: MT1 LOW, MT2 HIGH, Gate floating
+        tp::setMode(mt1, OUTPUT); tp::write(mt1, LOW);
+        tp::setMode(mt2, OUTPUT); tp::write(mt2, HIGH);
+        tp::setMode(g, INPUT);
         delay(10);
-        bool conductsAfter = readVoltage(A2) > threshold;
 
-        // Inverti polarità
-        setLow(A1);
-        setHigh(A2);
-        delay(10);
-        bool conductsReverse = readVoltage(A1) > threshold;
+        // 3. Verifica che tra MT1 e MT2 non vi sia conduzione (Triac spento)
+        float v_mt12_off = adc::readVoltage(mt2) - adc::readVoltage(mt1);
 
-        // Reset
-        setLow(A1);
-        setLow(A2);
+        // 4. Applica impulso su Gate (breve HIGH)
+        tp::setMode(g, OUTPUT); tp::write(g, HIGH);
+        delay(5);
+        tp::write(g, LOW);
+        tp::setMode(g, INPUT);
         delay(5);
 
-        if (!conductsBefore && conductsAfter && conductsReverse) {
-            display::print("TRIAC rilevato");
-            display::print("A1: TP" + String(A1+1));
-            display::print("A2: TP" + String(A2+1));
-            display::print("G:  TP" + String(G+1));
-            return;
+        // 5. Verifica se ora c'è conduzione tra MT1 e MT2 (Triac acceso)
+        float v_mt12_on = adc::readVoltage(mt2) - adc::readVoltage(mt1);
+
+        // 6. Analisi: se v_mt12_off alto, v_mt12_on basso (conduzione), è Triac
+        if (v_mt12_off > 2.0 && v_mt12_on < 0.5) {
+            display::clear();
+            display::showMessage("Triac rilevato!");
+            char buf[32];
+            snprintf(buf, sizeof(buf), "MT1=%d MT2=%d G=%d", mt1+1, mt2+1, g+1);
+            display::showMessage(buf);
+            found = true;
         }
     }
 
-    display::print("Nessun TRIAC rilevato");
+    if (!found) {
+        display::clear();
+        display::showMessage("Nessun Triac trovato");
+    }
 }
-showMessage(msg);
 
-void test::testZener() {
-    display::print("Test Zener");
+// --- 12. PUT (Programmable Unijunction Transistor) ---
+// Rileva e identifica PUT, ispirato alla logica GM328/HoRo
+void test::detectPUT() {
+    display::clear();
+    display::showMessage("Rilevamento PUT...");
 
-    pinMode(STEPUP_EN, OUTPUT);
-    digitalWrite(STEPUP_EN, LOW);  // step-up disattivo
+    // Combinazioni possibili di TP: (A, K, G)
+    struct PUTTest { TP a, k, g; };
+    const PUTTest combos[6] = {
+        {TP1, TP2, TP3}, {TP1, TP3, TP2},
+        {TP2, TP1, TP3}, {TP2, TP3, TP1},
+        {TP3, TP1, TP2}, {TP3, TP2, TP1}
+    };
 
-    for (uint8_t i = 0; i < 3; ++i) {
-        uint8_t anodo  = i;
-        uint8_t catodo = (i + 1) % 3;
+    bool found = false;
+    for (int i = 0; i < 6 && !found; ++i) {
+        TP a = combos[i].a, k = combos[i].k, g = combos[i].g;
 
-        dischargeAll();
-
-        // Test in diretta: anodo LOW, catodo HIGH
-        setLow(anodo);
-        setHigh(catodo);
+        tp::floatAll();
         delay(10);
-        float vf = readVoltage(anodo);  // tensione diretta
 
-        // Test in inversa con step-up
-        dischargeAll();
-        setLow(anodo);
-        digitalWrite(STEPUP_EN, HIGH);  // attiva boost
-        setHigh(catodo);                // catodo verso boost
-        delay(50);                      // tempo per stabilizzare
+        // 1. Prepara: Anodo HIGH, Catodo LOW, Gate INPUT (floating)
+        tp::setMode(a, OUTPUT); tp::write(a, HIGH);
+        tp::setMode(k, OUTPUT); tp::write(k, LOW);
+        tp::setMode(g, INPUT);
+        delay(10);
 
-        float vz = readVoltage(anodo);  // tensione inversa (su anodo)
+        // 2. Misura la tensione A-K (dovrebbe risultare alta se spento)
+        float v_ak_off = adc::readVoltage(a) - adc::readVoltage(k);
 
-        digitalWrite(STEPUP_EN, LOW);   // disattiva boost
-        dischargeAll();
+        // 3. Applica impulso su Gate (breve HIGH)
+        tp::setMode(g, OUTPUT); tp::write(g, HIGH);
+        delay(5);
+        tp::write(g, LOW);
+        tp::setMode(g, INPUT);
+        delay(5);
 
-        if (vf < 1.0 && vz > VZ_MIN && vz < VZ_MAX) {
-            display::print("Zener rilevato");
-            display::print("Anodo: TP" + String(anodo + 1));
-            display::print("Catodo: TP" + String(catodo + 1));
-            display::print("Vz ≈ " + String(vz, 1) + " V");
-            return;
+        // 4. Misura la tensione A-K (dovrebbe scendere se il PUT si accende)
+        float v_ak_on = adc::readVoltage(a) - adc::readVoltage(k);
+
+        // 5. Analisi: se v_ak_off alto e v_ak_on molto più basso, probabile PUT
+        if (v_ak_off > 2.0 && v_ak_on < 0.5) {
+            display::clear();
+            display::showMessage("PUT rilevato!");
+            char buf[32];
+            snprintf(buf, sizeof(buf), "A=%d K=%d G=%d", a+1, k+1, g+1);
+            display::showMessage(buf);
+            found = true;
         }
     }
 
-    display::print("Nessun Zener rilevato");
+    if (!found) {
+        display::clear();
+        display::showMessage("Nessun PUT trovato");
+    }
 }
 
-showMessage(msg);
+// --- 13. UJT (Unijunction Transistor) ---
+// Rileva e identifica UJT, ispirato alla logica GM328/HoRo
+void test::detectUJT() {
+    display::clear();
+    display::showMessage("Rilevamento UJT...");
 
+    // Combinazioni possibili di TP: (B1, B2, E)
+    struct UJTTest { TP b1, b2, e; };
+    const UJTTest combos[6] = {
+        {TP1, TP2, TP3}, {TP1, TP3, TP2},
+        {TP2, TP1, TP3}, {TP2, TP3, TP1},
+        {TP3, TP1, TP2}, {TP3, TP2, TP1}
+    };
+
+    bool found = false;
+    for (int i = 0; i < 6 && !found; ++i) {
+        TP b1 = combos[i].b1, b2 = combos[i].b2, e = combos[i].e;
+
+        tp::floatAll();
+        delay(10);
+
+        // 1. Misura resistenza tra B1 e B2 (deve essere lineare e "media" - tipico UJT)
+        tp::setMode(b1, OUTPUT); tp::write(b1, HIGH);
+        tp::setMode(b2, OUTPUT); tp::write(b2, LOW);
+        tp::setMode(e, INPUT);
+        delay(10);
+        float v_b1b2 = adc::readVoltage(b1) - adc::readVoltage(b2);
+
+        // 2. Applica impulso su Emitter e misura variazione su B1/B2
+        tp::setMode(e, OUTPUT); tp::write(e, HIGH);
+        delay(5);
+        float v_b1b2_after = adc::readVoltage(b1) - adc::readVoltage(b2);
+
+        // 3. Analisi: la resistenza tra B1-B2 dovrebbe cambiare al trigger dell'emitter
+        if (v_b1b2 > 1.0 && (v_b1b2 - v_b1b2_after) > 0.5) {
+            display::clear();
+            display::showMessage("UJT rilevato!");
+            char buf[32];
+            snprintf(buf, sizeof(buf), "B1=%d B2=%d E=%d", b1+1, b2+1, e+1);
+            display::showMessage(buf);
+            found = true;
+        }
+    }
+
+    if (!found) {
+        display::clear();
+        display::showMessage("Nessun UJT trovato");
+    }
 }
+
+// --- 14. Quarzo (Quartz Crystal) ---
+// Rileva e identifica quarzi, stile GM328/HoRo
+void test::detectQuartzCrystal() {
+    display::clear();
+    display::showMessage("Test quarzo...");
+
+    // Nota: la rilevazione del quarzo richiede un oscillatore a bordo, tipicamente basato su inverter o analoghi.
+    // Qui si può solo simulare la logica GM328/Horo: si tenta di generare un’oscillazione e di rilevarne la presenza.
+    // L’implementazione reale dipende dal circuito HW!
+    // In questa versione SW:
+    // 1. Si collega il quarzo tra due TP (ad es. TP1 e TP2).
+    // 2. Si genera un breve impulso alternato su TP1 e TP2 e si misura se su TP3 si rileva un segnale oscillante.
+
+    // 1. Imposta TP1 e TP2 come OUTPUT, TP3 come INPUT analogico
+    tp::floatAll();
+    tp::setMode(TP1, OUTPUT);
+    tp::setMode(TP2, OUTPUT);
+    tp::setMode(TP3, INPUT);
+
+    // 2. Simula oscillazione (impulsi rapidi alternati)
+    for (int i = 0; i < 500; ++i) {
+        tp::write(TP1, HIGH);
+        tp::write(TP2, LOW);
+        delayMicroseconds(2);
+        tp::write(TP1, LOW);
+        tp::write(TP2, HIGH);
+        delayMicroseconds(2);
+    }
+
+    // 3. Leggi la tensione su TP3 per vedere se c'è una risposta significativa
+    float v_tp3 = adc::readVoltage(TP3);
+
+    // 4. Soglia empirica: se si rileva una variazione di tensione, probabile quarzo presente e oscillante
+    if (v_tp3 > 0.2 && v_tp3 < (ADC_VREF - 0.2)) {
+        display::showMessage("Quarzo rilevato!");
+        // La frequenza reale non si può stimare senza HW dedicato
+    } else {
+        display::showMessage("Nessun quarzo trovato");
+    }
+}
+
+// --- 15. OneWire ---
+// Rileva presenza di dispositivi OneWire sulla linea, stile GM328/HoRo
+void test::detectOneWireDevice() {
+    display::clear();
+    display::showMessage("Test OneWire...");
+
+    // 1. Usa TP1 come linea 1-Wire, TP2 e TP3 floating
+    tp::floatAll();
+    tp::setMode(TP1, OUTPUT);
+    tp::write(TP1, HIGH); // Pull-up
+    delay(1);
+
+    // 2. Invia reset pulse: TP1 LOW per 480us, poi HIGH
+    tp::write(TP1, LOW);
+    delayMicroseconds(480);
+    tp::write(TP1, HIGH);
+    // 3. Attendi 70us (presenza pulse parte)
+    delayMicroseconds(70);
+
+    // 4. Imposta TP1 come INPUT e misura la tensione (se scende, c'è un device)
+    tp::setMode(TP1, INPUT);
+    float v = adc::readVoltage(TP1);
+
+    // 5. Attendi il termine del timeslot
+    delayMicroseconds(410);
+
+    // 6. Analisi: se la tensione scende dopo il reset pulse, c'è un dispositivo 1-Wire presente
+    if (v < (ADC_VREF * 0.7)) {
+        display::showMessage("OneWire trovato!");
+    } else {
+        display::showMessage("Nessun OneWire trovato");
+    }
+}
+
+// --- 16. Zener ---
+
+#define GPIO_STEPUP_EN  25 // Cambia con la tua effettiva GPIO di enable step-up
+
+
+void test::detectZenerTP(TP a, TP b, int gpio_stepup) {
+    // Abilita lo step-up per raggiungere tensioni fino a 35V
+    pinMode(gpio_stepup, OUTPUT);
+    digitalWrite(gpio_stepup, HIGH);
+    delay(60); // Attendi stabilizzazione step-up
+
+    tp::floatAll(); delay(5);
+    tp::setMode(a, OUTPUT); tp::write(a, HIGH); // Anodo a Vstepup
+    tp::setMode(b, OUTPUT); tp::write(b, LOW);  // Catodo a GND
+    delay(30);
+
+    float v_zener = adc::readVoltage(a) - adc::readVoltage(b);
+
+    digitalWrite(gpio_stepup, LOW); // Disabilita lo step-up
+
+    display::clear();
+    if (v_zener > 2.0f && v_zener < 35.0f) {
+        display::showMessage("Zener rilevato:");
+        display::showVoltage(v_zener, "Vz");
+    } else {
+        display::showMessage("Nessun Zener");
+    }
+}
+
+void test::detectZenerDiodes() {
+    detectZenerTP(TP1, TP2, GPIO_STEPUP_EN); delay(500);
+    detectZenerTP(TP2, TP3, GPIO_STEPUP_EN); delay(500);
+    detectZenerTP(TP3, TP1, GPIO_STEPUP_EN); delay(500);
+}
+
+
+// --- 17. Led ---
+
+void test::detectLEDTP(TP a, TP b, int gpio_stepup) {
+    // Abilita step-up per LED ad alta Vf
+    pinMode(gpio_stepup, OUTPUT);
+    digitalWrite(gpio_stepup, HIGH);
+    delay(50);
+
+    tp::floatAll(); delay(5);
+    tp::setMode(a, OUTPUT); tp::write(a, HIGH);
+    tp::setMode(b, OUTPUT); tp::write(b, LOW);
+    delay(15);
+
+    float v_fwd = adc::readVoltage(a) - adc::readVoltage(b);
+
+    digitalWrite(gpio_stepup, LOW); // Disabilita step-up
+
+    display::clear();
+    if (v_fwd > 1.3f && v_fwd < 4.5f) { // LED rosso ~1.6V, verde ~2V, bianco/UV anche >3V
+        display::showMessage("LED rilevato:");
+        display::showVoltage(v_fwd, "Vf");
+        // Qui puoi aggiungere lettura fotodiodo/fototransistor per confermare l'emissione luminosa!
+    } else {
+        display::showMessage("Nessun LED");
+    }
+}
+
+void test::detectLEDs() {
+    detectLEDTP(TP1, TP2, GPIO_STEPUP_EN); delay(500);
+    detectLEDTP(TP2, TP3, GPIO_STEPUP_EN); delay(500);
+    detectLEDTP(TP3, TP1, GPIO_STEPUP_EN); delay(500);
+}
+
+// --- Master: esegue tutto ---
+void runAll() {
+    detectResistors();
+    detectDiodes();
+    detectZenerDiodes();
+    detectInductors();
+    detectCapacitors();
+    detectBJT();
+    detectMOSFET();
+    detectJFET();
+    detectIGBT();
+    detectSCR();
+    detectTriac();
+    detectPUT();
+    detectUJT();
+    detectQuartzCrystal();
+    detectOneWireDevice();
+}
+
+} // namespace test

@@ -1,16 +1,19 @@
 #ifndef ADC_H
 #define ADC_H
 
-#include <Arduino.h>
-#include "tp.h"
+#include "config.h"
 
 namespace adc {
 
-    void begin();
-    float readVoltage(tp::TPLabel tp);
-    void calibrate();  // Stub per calibrazione futura
-    void detectComponent();  // Stub per logica di identificazione
+// Inizializzazione dell'ADC (se necessaria)
+void init();
 
-}
+// Legge la tensione (in Volt) su un TP specifico (TP1, TP2, TP3)
+float readVoltage(TP tp);
+
+// Facoltativo: funzione per leggere la raw value (ADC grezzo)
+uint16_t readRaw(TP tp);
+
+} // namespace adc
 
 #endif // ADC_H

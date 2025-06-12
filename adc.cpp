@@ -1,28 +1,25 @@
 #include "adc.h"
+#include <Arduino.h>
 
-// Mappa TP → pin analogici (modifica secondo il tuo schema)
-constexpr uint8_t TP_ADC_PINS[3] = { TP1_PIN, TP2_PIN, TP3_PIN }; // Devono essere ADC-capable
+// Mappa i TP ai rispettivi pin fisici
+static const int TP_PINS[3] = { TP1_PIN, TP2_PIN, TP3_PIN };
 
 namespace adc {
 
-    void begin() {
-        // Nessuna inizializzazione necessaria per analogRead() in Arduino
-        // Ma puoi impostare attenuazione o calibrazione se necessario
-    }
-
-    float readVoltage(tp::TPLabel tpLabel) {
-        uint8_t pin = TP_ADC_PINS[tpLabel];
-        int raw = analogRead(pin);
-        float voltage = (raw / ADC_RESOLUTION) * ADC_VREF;  // 12-bit ADC, 3.3V ref
-        return voltage;
-    }
-
-    void calibrate() {
-        // Stub: calibrazione futura con eFuse o Vref interno
-    }
-
-    void detectComponent() {
-        // Stub: logica di identificazione (resistenza, diodo, ecc.)
-    }
-
+void init() {
+    // Se serve configurare ADC, fallo qui (per ESP32S3 di solito non serve)
+    // analogReadResolution(12); // Se vuoi forzare la risoluzione
 }
+
+uint16_t readRaw(TP tp) {
+    int pin = TP_PINS[tp];
+    return analogRead(pin);
+}
+
+float readVoltage(TP tp) {
+    uint16_t raw = readRaw(tp);
+    float voltage = (raw / ADC_RESOLUTION) * ADC_VREF;
+    return voltage;
+}
+
+} // namespace adc
