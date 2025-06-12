@@ -44,13 +44,17 @@ test::detectResistorTP(TEST_POINT_1, TEST_POINT_2);
   delay(1000);
 
   // Doppio diodo / LED
-  test::detectDoubleDiodeOrLED(TEST_POINT_1, TEST_POINT_2);
-  delay(1000);
-  test::detectDoubleDiodeOrLED(TEST_POINT_2, TEST_POINT_3);
-  delay(1000);
-  test::detectDoubleDiodeOrLED(TEST_POINT_3, TEST_POINT_1);
+  // Test del doppio diodo / LED: comunemente, il primo parametro è il pin comune,
+  // il secondo l'anodo e il terzo il catodo. Adatta l'ordine in base al cablaggio.
+  test::detectDoubleDiodeOrLED(TEST_POINT_1, TEST_POINT_2, TEST_POINT_3);
   delay(1000);
 
+  // Se vuoi testare anche altre configurazioni, puoi cambiare l'ordine dei pin:
+  test::detectDoubleDiodeOrLED(TEST_POINT_2, TEST_POINT_3, TEST_POINT_1);
+  delay(1000);
+
+  test::detectDoubleDiodeOrLED(TEST_POINT_3, TEST_POINT_1, TEST_POINT_2);
+  delay(1000);
   // BJT (transistor bipolari)
   test::detectBJT();
   delay(1000);
