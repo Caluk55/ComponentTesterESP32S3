@@ -8,9 +8,9 @@
 typedef uint8_t TP;
 
 // Alias numerici per i test point (modifica secondo il tuo hardware in config.h se serve)
-#define TP1 0
-#define TP2 1
-#define TP3 2
+#define TEST_POINT_1 0
+#define TEST_POINT_2 1
+#define TEST_POINT_3 2
 
 namespace tp {
 

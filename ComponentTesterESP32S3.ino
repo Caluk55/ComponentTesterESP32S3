@@ -9,7 +9,7 @@ void setup() {
   Serial.begin(115200);
   delay(100);
 
-  initDisplay();
+ display::init(); // CORRETTO
   tp::init();
   adc::init();
   display::showWelcomeScreen();
@@ -17,10 +17,9 @@ void setup() {
 
 void loop() {
   // Leggi e mostra le tensioni sui test point
-  float v1 = adc::readVoltage(TP1);
-  float v2 = adc::readVoltage(TP2);
-  float v3 = adc::readVoltage(TP3);
-
+  float v1 = adc::readVoltage(TEST_POINT_1);
+    float v2 = adc::readVoltage(TEST_POINT_2);
+    float v3 = adc::readVoltage(TEST_POINT_3);
   display::clear();
   display::showVoltage(v1, "TP1");
   display::showVoltage(v2, "TP2");
@@ -31,25 +30,25 @@ void loop() {
   // --- TEST COMPONENTI IN SEQUENZA ---
 
   // Resistenze
-  test::detectResistorTP1TP2();
+test::detectResistorTP(TEST_POINT_1, TP2);
   delay(1000);
 
   // Diodi
-  test::detectDiodeTP1TP2();
+  test::detectDiodeTP(TEST_POINT_1, TEST_POINT_2);
   delay(1000);
-  test::detectDiodeBetween(tp::TP1, tp::TP2);
+  test::detectDiodeBetween(TEST_POINT_1, TEST_POINT_2);
   delay(1000);
-  test::detectDiodeBetween(tp::TP2, tp::TP3);
+  test::detectDiodeBetween(TEST_POINT_2, TEST_POINT_3);
   delay(1000);
-  test::detectDiodeBetween(tp::TP3, tp::TP1);
+  test::detectDiodeBetween(TP3, TEST_POINT_1);
   delay(1000);
 
   // Doppio diodo / LED
-  test::detectDoubleDiodeOrLED(tp::TP1, tp::TP2);
+  test::detectDoubleDiodeOrLED(TEST_POINT_1, TEST_POINT_2);
   delay(1000);
-  test::detectDoubleDiodeOrLED(tp::TP2, tp::TP3);
+  test::detectDoubleDiodeOrLED(TEST_POINT_2, TEST_POINT_3);
   delay(1000);
-  test::detectDoubleDiodeOrLED(tp::TP3, tp::TP1);
+  test::detectDoubleDiodeOrLED(TEST_POINT_3, TEST_POINT_1);
   delay(1000);
 
   // BJT (transistor bipolari)
