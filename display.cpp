@@ -8,7 +8,7 @@ namespace display {
 
 void init() {
     tft.init();
-    tft.setRotation(1); // Adatta in base al montaggio fisico
+    tft.setRotation(3); // Adatta in base al montaggio fisico
     tft.fillScreen(TFT_BLACK);
 }
 

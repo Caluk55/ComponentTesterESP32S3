@@ -693,30 +693,25 @@ void detectLEDTP(TP a, TP b, int gpio_stepup) {
 }
 
 // Nuova funzione per testare un doppio diodo a tre piedini
-void detectDoubleDiodeOrLED(int pin1, int pin2, int pin3) {
-    Serial.println("Test del doppio diodo (3 piedini)");
-    
-    // Legge lo stato dei tre piedini
-    int state1 = digitalRead(pin1);
-    int state2 = digitalRead(pin2);
-    int state3 = digitalRead(pin3);
-    
-    // Esempio di logica (da adattare in base alle caratteristiche specifiche del componente):
-    // Ad esempio, un doppio diodo a tre piedini potrebbe avere un terminale comune e due terminali separati.
-    // Qui verifichiamo se due degli ingressi (es. pin1 e pin2) sono HIGH e il terzo (es. pin3) è LOW.
-    
-    if(state1 == HIGH && state2 == HIGH && state3 == LOW) {
-        Serial.println("Doppio diodo rilevato: configurazione 1");
-    }
-    else if(state1 == LOW && state2 == HIGH && state3 == HIGH) {
-        Serial.println("Doppio diodo rilevato: configurazione 2");
-    }
-    else if(state1 == HIGH && state2 == LOW && state3 == HIGH) {
-        Serial.println("Doppio diodo rilevato: configurazione 3");
-    }
-    else {
-        Serial.println("Doppio diodo non rilevato o configurazione non riconosciuta");
-    }
+void detectDoubleDiodeOrLED(TP commonPin, TP anodePin, TP cathodePin) {
+  Serial.println("Test del doppio diodo / LED a 3 piedini");
+  
+  pinMode(commonPin, INPUT);
+  pinMode(anodePin, INPUT);
+  pinMode(cathodePin, INPUT);
+  
+  int commonState = digitalRead(commonPin);
+  int anodeState = digitalRead(anodePin);
+  int cathodeState = digitalRead(cathodePin);
+  
+  // Esempio di logica: verifica due possibili configurazioni
+  if (commonState == HIGH && anodeState == HIGH && cathodeState == LOW) {
+    Serial.println("Doppio diodo rilevato: configurazione 1");
+  } else if (commonState == HIGH && anodeState == LOW && cathodeState == HIGH) {
+    Serial.println("Doppio diodo rilevato: configurazione 2");
+  } else {
+    Serial.println("Doppio diodo non rilevato o configurazione non riconosciuta");
+  }
 }
 
 

@@ -5,6 +5,10 @@
 #include "tp.h"
 #include "test.h"
 
+
+
+
+
 void setup() {
   Serial.begin(115200);
   delay(100);
@@ -13,6 +17,7 @@ void setup() {
   tp::init();
   adc::init();
   display::showWelcomeScreen();
+  delay(3000);    
 }
 
 void loop() {

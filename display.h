@@ -7,6 +7,7 @@
 #include <TFT_eSPI.h>
 #include <stdint.h>
 
+
 namespace display {
 
 // Inizializza il display
