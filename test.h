@@ -13,9 +13,12 @@ void init();
 void detectResistors();
 void detectResistorTP(TP a, TP b);
 
-// Diodi/LED
+// Diodi 
 void detectDiodes();
 void detectDiodeTP(TP a, TP b);
+
+// Doppi Diodi
+void detectDoubleDiodeOrLED(TP commonPin, TP anodePin, TP cathodePin); // Nuova dichiarazione
 
 // Zener
 void detectZenerDiodes();
