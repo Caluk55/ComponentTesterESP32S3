@@ -10,6 +10,10 @@ namespace test {
     void detectCapacitor();
     void detectInductor();
     void detectMOSFET();
+    void testSCR();
+    void testTRIAC();
+    void testZener();
+    void runAll();
 
 }
 

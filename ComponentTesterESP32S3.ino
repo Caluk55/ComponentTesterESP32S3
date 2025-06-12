@@ -73,6 +73,9 @@ test::detectInductor();
 delay(2000);
 test::detectMOSFET();
 delay(2000);
+test::runAll();  // Esegue tutti i test in sequenza
+delay(2000);
+
 
 
 }

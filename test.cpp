@@ -486,6 +486,89 @@ void test::detectMOSFET() {
   showMessage(msg);
 }
 
+void test::testSCR() {
+    display::print("Test SCR");
+
+    for (uint8_t i = 0; i < 3; ++i) {
+        uint8_t A = i;
+        uint8_t K = (i + 1) % 3;
+        uint8_t G = (i + 2) % 3;
+
+        dischargeAll();
+
+        // Applica tensione tra A e K
+        setHigh(A);
+        setLow(K);
+        delay(10);
+        bool conductsBefore = readVoltage(K) > threshold;
+
+        // Impulso su Gate
+        pulse(G, 5);  // impulso breve
+        delay(10);
+        bool conductsAfter = readVoltage(K) > threshold;
+
+        // Reset
+        setLow(A);
+        delay(5);
+
+        if (!conductsBefore && conductsAfter) {
+            display::print("SCR rilevato");
+            display::print("A: TP" + String(A+1));
+            display::print("K: TP" + String(K+1));
+            display::print("G: TP" + String(G+1));
+            return;
+        }
+    }
+
+    display::print("Nessun SCR rilevato");
+}
+
+showMessage(msg);
+
+void test::testTRIAC() {
+    display::print("Test TRIAC");
+
+    for (uint8_t i = 0; i < 3; ++i) {
+        uint8_t A1 = i;
+        uint8_t A2 = (i + 1) % 3;
+        uint8_t G  = (i + 2) % 3;
+
+        dischargeAll();
+
+        // Applica tensione alternata simulata (es. inverti polarità)
+        setHigh(A1);
+        setLow(A2);
+        delay(10);
+        bool conductsBefore = readVoltage(A2) > threshold;
+
+        // Impulso su Gate
+        pulse(G, 5);
+        delay(10);
+        bool conductsAfter = readVoltage(A2) > threshold;
+
+        // Inverti polarità
+        setLow(A1);
+        setHigh(A2);
+        delay(10);
+        bool conductsReverse = readVoltage(A1) > threshold;
+
+        // Reset
+        setLow(A1);
+        setLow(A2);
+        delay(5);
+
+        if (!conductsBefore && conductsAfter && conductsReverse) {
+            display::print("TRIAC rilevato");
+            display::print("A1: TP" + String(A1+1));
+            display::print("A2: TP" + String(A2+1));
+            display::print("G:  TP" + String(G+1));
+            return;
+        }
+    }
+
+    display::print("Nessun TRIAC rilevato");
+}
+showMessage(msg);
 
 
 
