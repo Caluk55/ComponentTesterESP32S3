@@ -84,7 +84,7 @@ test::detectResistorTP(TEST_POINT_1, TEST_POINT_2);
   delay(1000);
 
   // Zener
-  test::detectZenerDiode();
+  test::detectZenerDiodes();
   delay(1000);
 
   // Quartz crystal
@@ -96,11 +96,11 @@ test::detectResistorTP(TEST_POINT_1, TEST_POINT_2);
   delay(1000);
 
   // Induttore
-  test::detectInductor();
+  test::detectInductors();
   delay(1000);
 
   // Condensatore
-  test::detectCapacitor();
+  test::detectCapacitors();
   delay(1000);
 
   // Per test multipli o esecuzione batch, puoi anche chiamare:
