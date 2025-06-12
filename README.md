@@ -99,10 +99,9 @@ Universal component tester inspired by the GM328/Ho-Ro projects, ported to ESP32
 
 ## 📝 Licenza / License
 
-Questo progetto è open-source.  
-This project is open-source.
-
-*(Aggiungi qui il tipo di licenza, es. MIT, GPL, ecc.)*
+**Licenza libera.**  
+Chiunque può utilizzare, modificare e condividere il codice per qualsiasi scopo, preferibilmente citando l'autore e mantenendo i ringraziamenti agli autori originali (vedi sezione "Credits & ringraziamenti").  
+No formal restrictions: anyone can use, modify and share this code for any purpose, preferably with credits to the author and keeping original acknowledgements (see "Credits & ringraziamenti").
 
 ---
 
