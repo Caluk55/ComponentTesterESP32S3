@@ -41,6 +41,8 @@ enum SymbolIndex {
     CAPACITOR_SYM,
     RESISTOR_SYM,
     DIODE_SYM,
+    DOUBLE_DIODE_SYM,
+    LED_SYM,
     LAST_SYMBOL_INDEX
 };
 
