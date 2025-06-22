@@ -28,9 +28,11 @@ void detectZenerTP(TP a, TP b);
 void detectInductors();
 void detectInductorTP(TP a, TP b);
 
-// Condensatori
+
+// Condensatori + ESR
 void detectCapacitors();
 void detectCapacitorTP(TP a, TP b);
+void detectESR(TP a, TP b);   // <--- AGGIUNTA
 
 // Transistor BJT
 void detectBJT();

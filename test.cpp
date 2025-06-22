@@ -161,7 +161,38 @@ void detectInductors() {
     detectInductorTP(TEST_POINT_3, TEST_POINT_1); delay(1000);
 }
 
-// --- 5. Condensatori ---
+// --- 5. Condensatori + ESR ---
+void detectESR(TP a, TP b) {
+    tp::floatAll();
+    delay(3);
+
+    // Scarica condensatore
+    tp::setMode(a, OUTPUT); tp::write(a, LOW);
+    tp::setMode(b, OUTPUT); tp::write(b, LOW);
+    delay(10);
+
+    // Applica impulso breve per misurare ESR
+    tp::setMode(a, OUTPUT); tp::write(a, HIGH);
+    tp::setMode(b, INPUT);
+    delayMicroseconds(80); // impulso brevissimo
+
+    float v_drop = adc::readVoltage(b);
+
+    // Calcolo ESR (Ohm): ESR = Vdrop / Iimpulso
+    float Iimpulso = (ADC_VREF - v_drop) / TP_SERIES_RESISTANCE;
+    if (Iimpulso < 1e-6) Iimpulso = 1e-6;
+    float esr = v_drop / Iimpulso;
+
+    display::showMessage("ESR:");
+    char buf[20];
+    if (esr < 1.0)
+        snprintf(buf, sizeof(buf), "%.2f Ohm", esr);
+    else
+        snprintf(buf, sizeof(buf), "%.1f Ohm", esr);
+    display::showMessage(buf);
+    delay(500);
+}
+
 void detectCapacitorTP(TP a, TP b) {
     tp::floatAll(); delay(5);
     tp::setMode(a, OUTPUT); 
@@ -197,7 +228,11 @@ void detectCapacitorTP(TP a, TP b) {
     else
         snprintf(buf, sizeof(buf), "%.2f mF", c * 1e3);
     display::showMessage(buf);
+
+    // Dopo la misura della capacità, misura anche l'ESR
+    detectESR(a, b);
 }
+
 void detectCapacitors() {
     detectCapacitorTP(TEST_POINT_1, TEST_POINT_2); delay(1000);
     detectCapacitorTP(TEST_POINT_2, TEST_POINT_3); delay(1000);
