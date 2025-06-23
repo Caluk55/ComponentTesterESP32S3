@@ -197,5 +197,20 @@ void print(int value) {
 void setTextSize(uint8_t size) {
     tft.setTextSize(size);
 }
+// AGGIUNGI ALLA FINE DEL NAMESPACE display:
+
+int fontHeight() {
+    return tft.fontHeight();
+}
+int screenWidth() {
+    return tft.width();
+}
+int screenHeight() {
+    return tft.height();
+}
+  int16_t textWidth(const char* text) {
+    return tft.textWidth(text); // o il metodo equivalente di LovyanGFX
+}
+  
 
 } // fine namespace display

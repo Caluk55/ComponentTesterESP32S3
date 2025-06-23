@@ -39,6 +39,10 @@ void setCursor(int32_t x, int32_t y);
 void print(const char* text);
 void print(int value);
 void setTextSize(uint8_t size);
+int fontHeight();
+int screenWidth();
+int screenHeight();
+int16_t textWidth(const char* text); 
 
 } // namespace display
 

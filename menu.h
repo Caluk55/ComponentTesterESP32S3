@@ -38,8 +38,4 @@ namespace menu {
     // Funzioni principali del menu
     void init();        // Inizializza i pulsanti
     void loop();        // Gestisce la logica del menu (input pulsanti, navigazione)
-    void drawMenu();    // Disegna il menu sul display
-
-} // namespace menu
-
-#endif // MENU_H
+    void drawMenu();    // Disegna il menu sul displa

@@ -17,9 +17,9 @@
 #define GPIO_STEPUP_EN  25
 
 // === Pin Encoder / Pulsante ===
-#define ENCODER_BUTTON_PIN 10 // PIN per il pulsante dell'encoder
-#define ENCODER_PIN_A      11 // Pin A dell'encoder
-#define ENCODER_PIN_B      12 // Pin B dell'encoder
+#define BUTTON_UP_PIN    15
+#define BUTTON_DOWN_PIN  16
+#define BUTTON_SELECT_PIN 17
 
 // === ADC Settings ===
 #define ADC_RESOLUTION 4095.0f  // 12-bit
@@ -60,9 +60,9 @@ Questo documento riassume l'assegnazione dei pin dell'ESP32S3 per il Component T
 * **GPIO 25** : GPIO_STEPUP_EN (Abilitazione convertitore step-up per Zener/LED ad alta tensione)
 
 ### 4. Encoder Rotativo (proposti)
-* **GPIO 10** : ENCODER_BUTTON_PIN (Pulsante dell'encoder, collegato a GND con pull-up interno)
-* **GPIO 11** : ENCODER_PIN_A (Segnale Fase A dell'encoder)
-* **GPIO 12** : ENCODER_PIN_B (Segnale Fase B dell'encoder)
+* **GPIO 15** : Up collegato a GND con pull-up interno)
+* **GPIO 16** : Down (Segnale Fase A dell'encoder)
+* **GPIO 17** : Select (Segnale Fase B dell'encoder)
 
 ---
 
@@ -87,9 +87,9 @@ Assicurati sempre di controllare il datasheet specifico del tuo modulo ESP32S3 p
         ├───┤ GPIO 6 (TP3)                            ├───┤ GPIO 16 (TFT DC)
         ├───┤ GPIO 7 (TP2)                            ├───┤ GPIO 17 (TFT RST)
         │   │                                         │   │
-        ├───┤ GPIO 10 (Enc Btn)                       ├───┤ GPIO 18 (TFT SCLK)
-        ├───┤ GPIO 11 (Enc A)                         ├───┤ GPIO 23 (TFT MOSI)
-        ├───┤ GPIO 12 (Enc B)                         │   │
+        ├───┤ GPIO 15 (Up)                            ├───┤ GPIO 18 (TFT SCLK)
+        ├───┤ GPIO 16 (Down)                          ├───┤ GPIO 23 (TFT MOSI)
+        ├───┤ GPIO 17 (Select)                        │   │
         │   │                                         │   │
         ├───┤ GPIO 25 (StepUp EN)                     │   │
         │   │                                         │   │
