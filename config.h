@@ -12,7 +12,7 @@
 
 // === Pin Mapping ===
 #define TP1_PIN 4
-#define TP2_PIN 7  // MODIFICATO PER RISOLVERE IL CONFLITTO COL TFT CS
+#define TP2_PIN 5  // MODIFICATO PER RISOLVERE IL CONFLITTO COL TFT CS
 #define TP3_PIN 6
 #define GPIO_STEPUP_EN  25
 
@@ -83,12 +83,12 @@ Assicurati sempre di controllare il datasheet specifico del tuo modulo ESP32S3 p
         │            │          │          │           │
         │  ┌─────────┴──────────┴──────────┴─────────┐ │
         │  │                                         │ │
-        ├───┤ GPIO 4 (TP1)                            ├───┤ GPIO 5 (TFT CS)
-        ├───┤ GPIO 6 (TP3)                            ├───┤ GPIO 16 (TFT DC)
-        ├───┤ GPIO 7 (TP2)                            ├───┤ GPIO 17 (TFT RST)
+        ├───┤ GPIO 4 (TP1)                            ├───┤ GPIO 10 (TFT CS)
+        ├───┤ GPIO 5 (TP2)                            ├───┤ GPIO  9 (TFT DC)
+        ├───┤ GPIO 6 (TP3)                            ├───┤ GPIO  8 (TFT RST)
         │   │                                         │   │
-        ├───┤ GPIO 15 (Up)                            ├───┤ GPIO 18 (TFT SCLK)
-        ├───┤ GPIO 16 (Down)                          ├───┤ GPIO 23 (TFT MOSI)
+        ├───┤ GPIO 15 (Up)                            ├───┤ GPIO 12 (TFT SCLK)
+        ├───┤ GPIO 16 (Down)                          ├───┤ GPIO 11 (TFT MOSI)
         ├───┤ GPIO 17 (Select)                        │   │
         │   │                                         │   │
         ├───┤ GPIO 25 (StepUp EN)                     │   │
