@@ -11,10 +11,10 @@
 #define VERBOSE 1  // Stampa dettagliata su Serial
 
 // === Pin Mapping ===
-#define TP1_PIN 4
-#define TP2_PIN 5  // MODIFICATO PER RISOLVERE IL CONFLITTO COL TFT CS
-#define TP3_PIN 6
-#define GPIO_STEPUP_EN  25
+#define TP1_PIN 4  //Test Pin1
+#define TP2_PIN 5  //Test Pin2
+#define TP3_PIN 6  //Test Pin 3
+#define GPIO_STEPUP_EN  25  // Step Up Enable (Zener)
 
 // === Pin Encoder / Pulsante ===
 #define BUTTON_UP_PIN    15
