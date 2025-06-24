@@ -17,7 +17,7 @@
 #define GPIO_STEPUP_EN  25  // Step Up Enable (Zener)
 
 // === Pin Encoder / Pulsante ===
-#define BUTTON_UP_PIN    1
+#define BUTTON_UP_PIN  1
 #define BUTTON_DOWN_PIN  2
 #define BUTTON_SELECT_PIN 3
 
