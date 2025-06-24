@@ -374,14 +374,4 @@ const uint8_t PinTable[] PROGMEM = {
     PIN_NONE, PIN_NONE, PIN_NONE,                                          /* Zener diode */
     PIN_NONE, PIN_NONE, PIN_NONE,                                          /* quartz crystal */
     PIN_LEFT | PIN_CENTER, PIN_RIGHT | PIN_TOP, PIN_RIGHT | PIN_BOTTOM,   /* OneWire device */
-    // Nuovi simboli passivi (non hanno pin da etichettare allo stesso modo)
-    PIN_NONE, PIN_NONE, PIN_NONE,  /* Induttore */
-    PIN_NONE, PIN_NONE, PIN_NONE,  /* Condensatore */
-    PIN_NONE, PIN_NONE, PIN_NONE,  /* Resistore */
-    PIN_NONE, PIN_NONE, PIN_NONE,   /* Diodo */
-    PIN_NONE, PIN_NONE, PIN_NONE,  /* Doppio Diodo */
-    PIN_NONE, PIN_NONE, PIN_NONE   /* Led */
-};
-
-
-#endif // ICONS_H
+    // Nuovi simboli passi

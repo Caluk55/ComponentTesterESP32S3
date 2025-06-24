@@ -115,6 +115,7 @@ void showWelcomeScreen() {
 void showVoltage(float voltage, const char* tp_label, int y) {
     char buf[32];
     snprintf(buf, sizeof(buf), "%s: %.2f V", tp_label, voltage);
+    tft.setFont(&fonts::Font2);
     tft.setTextColor(TFT_CYAN, TFT_BLACK);
     tft.setTextSize(2);
 
@@ -137,6 +138,7 @@ void showVoltage(float voltage, const char* tp_label, int y) {
 
 void showMessage(const char* msg, int y) {
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setFont(&fonts::Font2);
     tft.setTextSize(2);
     if (y < 0) y = tft.getCursorY() + 30; // Se y è negativo, posiziona sotto l'ultima riga
     tft.setCursor(20, y);
