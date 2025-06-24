@@ -75,6 +75,8 @@ void detectLEDTP(TP a, TP b, int gpio_stepup);
 // Esegue tutti i test in sequenza
 void runAll();
 
+void showComponentResult(int symbolIndex, const char* componentName, const char* pinLabels[], int numPins, const char* paramLabels[], int numParams);
+
 } // namespace test
 
 #endif // TEST_H
