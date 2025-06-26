@@ -11,15 +11,15 @@
 #define VERBOSE 1  // Stampa dettagliata su Serial
 
 // === Pin Mapping ===
-#define TP1_PIN 4  //Test Pin1
-#define TP2_PIN 5  //Test Pin2
-#define TP3_PIN 6  //Test Pin 3
-#define GPIO_STEPUP_EN  25  // Step Up Enable (Zener)
+#define TP1_PIN 4
+#define TP2_PIN 5  
+#define TP3_PIN 6
+#define GPIO_STEPUP_EN  25
 
 // === Pin Encoder / Pulsante ===
-#define BUTTON_UP_PIN  1
-#define BUTTON_DOWN_PIN  2
-#define BUTTON_SELECT_PIN 3
+#define BUTTON_UP_PIN    15
+#define BUTTON_DOWN_PIN  16
+#define BUTTON_SELECT_PIN 17
 
 // === ADC Settings ===
 #define ADC_RESOLUTION 4095.0f  // 12-bit
@@ -44,16 +44,16 @@ Questo documento riassume l'assegnazione dei pin dell'ESP32S3 per il Component T
 ## Pin Occupati
 
 ### 1. TFT ST7789 (interfaccia SPI comune, verifica il tuo display.cpp per i valori esatti se diversi)
-* **GPIO 5** : CS  (Chip Select)
-* **GPIO 16** : DC  (Data/Command)
-* **GPIO 17** : RST (Reset)
-* **GPIO 18** : SCLK (SPI Clock)
-* **GPIO 23** : MOSI (SPI Data Out)
+* **GPIO 10** : CS  (Chip Select)
+* **GPIO  9** : DC  (Data/Command)
+* **GPIO  8** : RST (Reset)
+* **GPIO 12** : SCLK (SPI Clock)
+* **GPIO 11** : MOSI (SPI Data Out)
 * *(Eventuale pin BLK/LED per retroilluminazione, da verificare se usato via GPIO/PWM)*
 
 ### 2. Test Points (TP)
 * **GPIO 4** : TP1_PIN
-* **GPIO 7** : TP2_PIN (Modificato per risolvere conflitto con TFT CS)
+* **GPIO 5** : TP2_PIN 
 * **GPIO 6** : TP3_PIN
 
 ### 3. Funzioni Aggiuntive
@@ -75,7 +75,7 @@ Assicurati sempre di controllare il datasheet specifico del tuo modulo ESP32S3 p
         │         │   ESP32S3 Modulo       │         │
         │         │                        │         │
         │         └────────────────────────┘         │
-        │            ▲          ▲          ▲           │
+        │            ▲          ▲          ▲          │
         │            │          │          │           │
         │            │          │          │           │
         │            │          │          │           │
@@ -86,15 +86,15 @@ Assicurati sempre di controllare il datasheet specifico del tuo modulo ESP32S3 p
         ├───┤ GPIO 4 (TP1)                            ├───┤ GPIO 10 (TFT CS)
         ├───┤ GPIO 5 (TP2)                            ├───┤ GPIO  9 (TFT DC)
         ├───┤ GPIO 6 (TP3)                            ├───┤ GPIO  8 (TFT RST)
-        │   │                                         │   │
+        │    │                                         │    │
         ├───┤ GPIO 15 (Up)                            ├───┤ GPIO 12 (TFT SCLK)
         ├───┤ GPIO 16 (Down)                          ├───┤ GPIO 11 (TFT MOSI)
-        ├───┤ GPIO 17 (Select)                        │   │
-        │   │                                         │   │
-        ├───┤ GPIO 25 (StepUp EN)                     │   │
-        │   │                                         │   │
-        │   │        ... altri GPIO liberi ...        │   │
-        │   │                                         │   │
+        ├───┤ GPIO 17 (Select)                        │    │
+        │   │                                          │    │
+        ├───┤ GPIO 25 (StepUp EN)                     │    │
+        │   │                                          │    │
+        │   │        ... altri GPIO liberi ...         │    │
+        │   │                                          │    │
         └─┬─┴─────────────────────────────────────────┴─┬─┘
           │                                           │
           ▼                                           ▼
