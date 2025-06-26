@@ -1,4 +1,4 @@
-#ifndef CONFIG_H
+##ifndef CONFIG_H
 #define CONFIG_H
 
 // === Parametri elettrici reali ===
@@ -14,11 +14,21 @@
 #define TP1_PIN 4
 #define TP2_PIN 5  
 #define TP3_PIN 6
-#define GPIO_STEPUP_EN  25
+#define TEST_POINT_1 0
+#define TEST_POINT_2 1
+#define TEST_POINT_3 2
+#define GPIO_STEPUP_EN  38
+#define TL431_REF_ADC_PIN 2
+#define TP1_470K_PIN  21
+#define TP1_680_PIN   33
+#define TP2_470K_PIN  34
+#define TP2_680_PIN   35
+#define TP3_470K_PIN  36
+#define TP3_680_PIN   37
 
 // === Pin Encoder / Pulsante ===
-#define BUTTON_UP_PIN    15
-#define BUTTON_DOWN_PIN  16
+#define BUTTON_UP_PIN 15
+#define BUTTON_DOWN_PIN 16
 #define BUTTON_SELECT_PIN 17
 
 // === ADC Settings ===
@@ -37,13 +47,13 @@
 
 /* # Promemoria Pinout Component Tester
 
-Questo documento riassume l'assegnazione dei pin dell'ESP32S3 per il Component Tester.
+Questo documento riassume l'assegnazione aggiornata dei pin dell'ESP32S3 per il Component Tester.
 
 ---
 
 ## Pin Occupati
 
-### 1. TFT ST7789 (interfaccia SPI comune, verifica il tuo display.cpp per i valori esatti se diversi)
+### 1. TFT ST7789 (interfaccia SPI)
 * **GPIO 10** : CS  (Chip Select)
 * **GPIO  9** : DC  (Data/Command)
 * **GPIO  8** : RST (Reset)
@@ -52,52 +62,56 @@ Questo documento riassume l'assegnazione dei pin dell'ESP32S3 per il Component T
 * *(Eventuale pin BLK/LED per retroilluminazione, da verificare se usato via GPIO/PWM)*
 
 ### 2. Test Points (TP)
-* **GPIO 4** : TP1_PIN
-* **GPIO 5** : TP2_PIN 
-* **GPIO 6** : TP3_PIN
+* **GPIO 4**  : TP1_PIN
+* **GPIO 5**  : TP2_PIN 
+* **GPIO 6**  : TP3_PIN
 
-### 3. Funzioni Aggiuntive
-* **GPIO 25** : GPIO_STEPUP_EN (Abilitazione convertitore step-up per Zener/LED ad alta tensione)
+### 3. Step-Up Enable
+* **GPIO 38** : GPIO_STEPUP_EN (abilitazione step-up per Zener/LED alta tensione)
 
-### 4. Encoder Rotativo (proposti)
-* **GPIO 15** : Up collegato a GND con pull-up interno)
-* **GPIO 16** : Down (Segnale Fase A dell'encoder)
-* **GPIO 17** : Select (Segnale Fase B dell'encoder)
+### 4. Resistenze Commutate (gestite via GPIO)
+* **GPIO 21** : TP1_470K_PIN
+* **GPIO 33** : TP1_680_PIN
+* **GPIO 34** : TP2_470K_PIN
+* **GPIO 35** : TP2_680_PIN
+* **GPIO 36** : TP3_470K_PIN
+* **GPIO 37** : TP3_680_PIN
+
+### 5. Riferimento TL431 (lettura ADC)
+* **GPIO 2**  : TL431_REF_ADC_PIN
+
+### 6. Encoder Rotativo / Pulsanti
+* **GPIO 15** : BUTTON_UP_PIN (Up, collegato a GND con pull-up interno)
+* **GPIO 16** : BUTTON_DOWN_PIN (Down, segnale fase A dell'encoder)
+* **GPIO 17** : BUTTON_SELECT_PIN (Select, segnale fase B dell'encoder)
 
 ---
 
-## Pin Liberi Consigliati (Esempi)
-L'ESP32S3 ha molti altri pin GPIO. Alcuni pin generalmente sicuri da usare se non occupati sono: 1, 2, 3, 8, 9, 13, 14, 15, 19, 20, 21, 22, 26, 27, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46.
-Assicurati sempre di controllare il datasheet specifico del tuo modulo ESP32S3 per evitare pin con funzioni speciali all'avvio (es. boot pins).
-                  ┌────────────────────────┐
-                  │                        │
-  GND ──┬─────────┤                        ├─────────┬─────── VCC (3.3V)
-        │         │   ESP32S3 Modulo       │         │
-        │         │                        │         │
-        │         └────────────────────────┘         │
-        │            ▲          ▲          ▲          │
-        │            │          │          │           │
-        │            │          │          │           │
-        │            │          │          │           │
-        │            │          │          │           │
-        │            │          │          │           │
-        │  ┌─────────┴──────────┴──────────┴─────────┐ │
-        │  │                                         │ │
-        ├───┤ GPIO 4 (TP1)                            ├───┤ GPIO 10 (TFT CS)
-        ├───┤ GPIO 5 (TP2)                            ├───┤ GPIO  9 (TFT DC)
-        ├───┤ GPIO 6 (TP3)                            ├───┤ GPIO  8 (TFT RST)
-        │    │                                         │    │
-        ├───┤ GPIO 15 (Up)                            ├───┤ GPIO 12 (TFT SCLK)
-        ├───┤ GPIO 16 (Down)                          ├───┤ GPIO 11 (TFT MOSI)
-        ├───┤ GPIO 17 (Select)                        │    │
-        │   │                                          │    │
-        ├───┤ GPIO 25 (StepUp EN)                     │    │
-        │   │                                          │    │
-        │   │        ... altri GPIO liberi ...         │    │
-        │   │                                          │    │
-        └─┬─┴─────────────────────────────────────────┴─┬─┘
-          │                                           │
-          ▼                                           ▼
-      A Vari Componenti                           A TFT ST7789
+## Pin Liberi Consigliati (se servono altre espansioni)
+L'ESP32S3 WROOM N16R8 ha altri GPIO disponibili: 0, 1, 3, 7, 13, 14, 18, 19, 20, 22, 23, 26, 39, 40, 41, 42, 43, ecc.
+Attenzione ai pin riservati per funzioni speciali (boot, QSPI, UART0, ecc) secondo il datasheet.
+
+---
+Schema semplificato:
+
+                ┌──────────────────────────────┐
+   GND ──┬──────┤        ESP32S3 WROOM         ├───────┬──── VCC (3.3V)
+         │      └──────────────────────────────┘       │
+         │             ▲   ▲   ▲   ▲   ▲   ▲           │
+         │             │   │   │   │   │   │           │
+         │             │   │   │   │   │   │           │
+         ├── TP1 (4)   │   │   │   │   │   │    TFT_CS (10)
+         ├── TP2 (5)   │   │   │   │   │   │    TFT_DC (9)
+         ├── TP3 (6)   │   │   │   │   │   │    TFT_RST (8)
+         ├── TP1_470K (21)  TP1_680 (33)             TFT_SCLK (12)
+         ├── TP2_470K (34)  TP2_680 (35)             TFT_MOSI (11)
+         ├── TP3_470K (36)  TP3_680 (37)
+         ├── STEPUP_EN (38)
+         ├── TL431_REF_ADC (2)
+         ├── BUTTON_UP (15)
+         ├── BUTTON_DOWN (16)
+         └── BUTTON_SELECT (17)
+
+---
 
 */

@@ -51,6 +51,8 @@ void init() {
 
 // --- 1. Resistenze ---
 void detectResistorTP(TP a, TP b) {
+    disableAllTestResistors();
+    enableTestResistor(a, true); // 470k su TP a
     tp::floatAll();
     delay(5);
     tp::setMode(a, OUTPUT); 
@@ -66,6 +68,8 @@ void detectResistorTP(TP a, TP b) {
     if (current < 1e-7)
         current = 1e-7;
     float r = v_drop / current - TP_SERIES_RESISTANCE;
+
+    disableAllTestResistors();
 
     // --- Nuova visualizzazione ---
     char bufR[32];
@@ -91,6 +95,9 @@ void detectResistors() {
 
 // --- 2. Diodi/LED ---
 void detectDiodeTP(TP a, TP b) {
+    disableAllTestResistors();
+
+    enableTestResistor(a, false); // 680Ω su TP a, per la misura diodi/LED
     tp::floatAll();
     delay(5);
     tp::setMode(a, OUTPUT); 
@@ -99,10 +106,13 @@ void detectDiodeTP(TP a, TP b) {
     tp::write(b, LOW);
     delay(5);
     float v_fwd = adc::readVoltage(a) - adc::readVoltage(b);
+
     tp::write(a, LOW); 
     tp::write(b, HIGH);
     delay(5);
     float v_rev = adc::readVoltage(b) - adc::readVoltage(a);
+
+    disableAllTestResistors();
 
     char pinA[8], pinB[8];
     snprintf(pinA, sizeof(pinA), "TP%d", a+1);
@@ -132,6 +142,9 @@ void detectDiodes() {
 
 // --- 3. Zener ---
 void detectZenerTP(TP a, TP b) {
+    disableAllTestResistors();
+
+    enableTestResistor(a, false); // 680Ω su TP a, per zener
     tp::floatAll(); delay(5);
     tp::setMode(a, OUTPUT); 
     tp::write(a, LOW);
@@ -139,6 +152,8 @@ void detectZenerTP(TP a, TP b) {
     tp::write(b, HIGH);
     delay(10);
     float v_zener = adc::readVoltage(a) - adc::readVoltage(b);
+
+    disableAllTestResistors();
 
     // --- Nuova visualizzazione ---
     char bufVz[32];
@@ -164,6 +179,9 @@ void detectZenerDiodes() {
 
 // --- 4. Induttori ---
 void detectInductorTP(TP a, TP b) {
+    disableAllTestResistors();
+
+    enableTestResistor(a, true); // 470k su TP a
     tp::floatAll();
     delay(5);
 
@@ -183,6 +201,8 @@ void detectInductorTP(TP a, TP b) {
     float dt = 100e-6f;
     float dI = ADC_VREF / TP_SERIES_RESISTANCE;
     float L = (v_peak * dt) / dI;
+
+    disableAllTestResistors();
 
     // --- Nuova visualizzazione ---
     char bufL[32];
@@ -208,6 +228,9 @@ void detectInductors() {
 
 // --- 5. Condensatori + ESR ---
 void detectESR(TP a, TP b, float* esr_out = nullptr) {
+    disableAllTestResistors();
+
+    enableTestResistor(a, false); // 680Ω su TP a
     tp::floatAll();
     delay(3);
 
@@ -227,6 +250,8 @@ void detectESR(TP a, TP b, float* esr_out = nullptr) {
     float Iimpulso = (ADC_VREF - v_drop) / TP_SERIES_RESISTANCE;
     if (Iimpulso < 1e-6) Iimpulso = 1e-6;
     float esr = v_drop / Iimpulso;
+
+    disableAllTestResistors();
 
     if (esr_out) *esr_out = esr;
 
@@ -248,6 +273,9 @@ void detectESR(TP a, TP b, float* esr_out = nullptr) {
 }
 
 void detectCapacitorTP(TP a, TP b) {
+    disableAllTestResistors();
+
+    enableTestResistor(a, true); // 470k su TP a
     tp::floatAll(); delay(5);
     tp::setMode(a, OUTPUT); 
     tp::write(a, LOW);
@@ -273,6 +301,8 @@ void detectCapacitorTP(TP a, TP b) {
     // Calcola ESR e salva in variabile
     float esr = 0.0f;
     detectESR(a, b, &esr);
+
+    disableAllTestResistors();
 
     // --- Nuova visualizzazione ---
     char bufC[24], bufESR[20];
@@ -314,14 +344,19 @@ void detectBJT() {
     for (int i = 0; i < 6; ++i) {
         TP e = combos[i].e, b = combos[i].b, c = combos[i].c;
 
-        // NPN
+        // NPN: misura giunzione BE e BC con resistenza 680Ω sulla base
         tp::floatAll();
+        disableAllTestResistors();
+
+        enableTestResistor(b, false); // 680Ω sulla base
         tp::setMode(b, OUTPUT); tp::write(b, HIGH);
         tp::setMode(e, OUTPUT); tp::write(e, LOW);
         tp::setMode(c, INPUT);
         delay(5);
         float v_be = adc::readVoltage(b) - adc::readVoltage(e);
         float v_bc = adc::readVoltage(b) - adc::readVoltage(c);
+        disableAllTestResistors();
+
         if (v_be > 0.55 && v_be < 0.8 && v_bc > 0.55 && v_bc < 0.8) {
             char bufType[16] = "NPN";
             char bufE[8], bufB[8], bufC[8];
@@ -333,14 +368,20 @@ void detectBJT() {
             showComponentResult(BJT_NPN_SYM, "BJT", pins, 3, params, 1);
             return;
         }
-        // PNP
+
+        // PNP: misura giunzione BE e BC con 680Ω sulla base
         tp::floatAll();
+        disableAllTestResistors();
+
+        enableTestResistor(b, false); // 680Ω sulla base
         tp::setMode(b, OUTPUT); tp::write(b, LOW);
         tp::setMode(e, OUTPUT); tp::write(e, HIGH);
         tp::setMode(c, INPUT);
         delay(5);
         v_be = adc::readVoltage(e) - adc::readVoltage(b);
         v_bc = adc::readVoltage(c) - adc::readVoltage(b);
+        disableAllTestResistors();
+
         if (v_be > 0.55 && v_be < 0.8 && v_bc > 0.55 && v_bc < 0.8) {
             char bufType[16] = "PNP";
             char bufE[8], bufB[8], bufC[8];
@@ -1119,7 +1160,7 @@ void showComponentResult(
     // Pinout (sotto il nome)
     int pinY = titleY + fontHeight() + 8;
     setTextColor(TFT_CYAN, TFT_BLACK);
-    setTextSize(1);
+    setTextSize(2); // <-- grande come "Cal 2025"
     for (int i = 0; i < numPins; ++i) {
         setCursor(20, pinY + i * (fontHeight() + 2));
         print(pinLabels[i]);
@@ -1128,11 +1169,31 @@ void showComponentResult(
     // Parametri (sotto i pin)
     int paramY = pinY + numPins * (fontHeight() + 6);
     setTextColor(TFT_WHITE, TFT_BLACK);
+    setTextSize(2); // <-- grande come "Cal 2025"
     for (int i = 0; i < numParams; ++i) {
         setCursor(20, paramY + i * (fontHeight() + 2));
         print(paramLabels[i]);
     }
 }
+
+  // --- INIZIO AGGIUNTE PER RESISTENZE COMMUTATE ---
+
+void enableTestResistor(TP tp, bool use470k) {
+    // Prima disattiva entrambe su quel TP
+    tp::set470k(tp, false);
+    tp::set680(tp, false);
+    // Poi abilita quella scelta
+    if (use470k)
+        tp::set470k(tp, true);
+    else
+        tp::set680(tp, true);
+}
+
+void disableAllTestResistors() {
+    tp::disableAllResistors();
+}
+
+// --- FINE AGGIUNTE ---
 
   
 } // namespace test

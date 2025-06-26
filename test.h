@@ -77,6 +77,17 @@ void runAll();
 
 void showComponentResult(int symbolIndex, const char* componentName, const char* pinLabels[], int numPins, const char* paramLabels[], int numParams);
 
+// --- INIZIO AGGIUNTE PER RESISTENZE COMMUTATE ---
+
+// Abilita la resistenza desiderata su un TP prima di una misura (solo una per volta, logica esclusiva)
+// use470k=true → attiva la 470k, use470k=false → attiva la 680Ω
+void enableTestResistor(TP tp, bool use470k);
+
+// Disabilita tutte le resistenze commutate (da chiamare dopo ogni misura)
+void disableAllTestResistors();
+
+// --- FINE AGGIUNTE ---
+
 } // namespace test
 
 #endif // TEST_H
