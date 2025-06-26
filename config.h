@@ -1,4 +1,4 @@
-##ifndef CONFIG_H
+#ifndef CONFIG_H
 #define CONFIG_H
 
 // === Parametri elettrici reali ===
@@ -20,8 +20,8 @@
 #define GPIO_STEPUP_EN  38
 #define TL431_REF_ADC_PIN 2
 #define TP1_470K_PIN  21
-#define TP1_680_PIN   33
-#define TP2_470K_PIN  34
+#define TP1_680_PIN   40
+#define TP2_470K_PIN  39
 #define TP2_680_PIN   35
 #define TP3_470K_PIN  36
 #define TP3_680_PIN   37
@@ -71,8 +71,8 @@ Questo documento riassume l'assegnazione aggiornata dei pin dell'ESP32S3 per il 
 
 ### 4. Resistenze Commutate (gestite via GPIO)
 * **GPIO 21** : TP1_470K_PIN
-* **GPIO 33** : TP1_680_PIN
-* **GPIO 34** : TP2_470K_PIN
+* **GPIO 40** : TP1_680_PIN
+* **GPIO 39** : TP2_470K_PIN
 * **GPIO 35** : TP2_680_PIN
 * **GPIO 36** : TP3_470K_PIN
 * **GPIO 37** : TP3_680_PIN
@@ -103,8 +103,8 @@ Schema semplificato:
          ├── TP1 (4)   │   │   │   │   │   │    TFT_CS (10)
          ├── TP2 (5)   │   │   │   │   │   │    TFT_DC (9)
          ├── TP3 (6)   │   │   │   │   │   │    TFT_RST (8)
-         ├── TP1_470K (21)  TP1_680 (33)             TFT_SCLK (12)
-         ├── TP2_470K (34)  TP2_680 (35)             TFT_MOSI (11)
+         ├── TP1_470K (21)  TP1_680 (40)        TFT_SCLK (12)
+         ├── TP2_470K (39)  TP2_680 (35)        TFT_MOSI (11)
          ├── TP3_470K (36)  TP3_680 (37)
          ├── STEPUP_EN (38)
          ├── TL431_REF_ADC (2)
